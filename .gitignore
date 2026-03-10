@@ -1,0 +1,11 @@
+﻿node_modules
+.pnpm-store
+.turbo
+**/dist
+**/build
+.env
+.env.*
+apps/demo-app
+ДиаграммыСистемДизайн.pptx
+ОписаниеВКР.docx
+ПримерноеОписаниеИСтруктура.pdf
