@@ -1,0 +1,81 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ab_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ab_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: ab_user
+      CLICKHOUSE_PASSWORD: ab_pass
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ch_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping | grep -q Ok."]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    environment:
+      PORT: 3000
+      JWT_SECRET: local-dev-secret
+      ADMIN_EMAIL: admin@local.test
+      ADMIN_PASSWORD: admin123
+      POSTGRES_URL: postgres://postgres:postgres@postgres:5432/ab_platform
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ab_user
+      CLICKHOUSE_PASSWORD: ab_pass
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    restart: on-failure
+    ports:
+      - "3000:3000"
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+  demo-app:
+    build:
+      context: .
+      dockerfile: apps/demo-app/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+    depends_on:
+      - backend
+    ports:
+      - "5176:80"
+
+volumes:
+  pg_data:
+  ch_data:
