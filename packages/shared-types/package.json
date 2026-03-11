@@ -1,0 +1,15 @@
+{
+  "name": "@ab/shared-types",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "echo \"no tests\"",
+    "lint": "echo \"no lint\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
