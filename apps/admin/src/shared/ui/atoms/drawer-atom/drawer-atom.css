@@ -1,0 +1,13 @@
+.drawer-atom {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(520px, 92vw);
+  background: #0d2041;
+  border-left: 1px solid var(--line);
+  box-shadow: -20px 0 40px rgba(0, 0, 0, 0.35);
+  padding: 18px;
+  overflow: auto;
+  z-index: 50;
+}

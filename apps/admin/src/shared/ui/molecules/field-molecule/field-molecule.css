@@ -1,0 +1,9 @@
+.field-molecule {
+  display: grid;
+  gap: 6px;
+}
+
+.field-molecule__label {
+  font-size: 12px;
+  color: var(--muted);
+}

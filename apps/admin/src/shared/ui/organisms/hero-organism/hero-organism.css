@@ -1,0 +1,16 @@
+.hero-organism {
+  border: 1px solid var(--line);
+  background: linear-gradient(120deg, #0c1b3e 0%, #113162 55%, #0e3e5e 100%);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.hero-organism h1 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.hero-organism p {
+  margin: 8px 0 0;
+  color: #b8d0ef;
+}

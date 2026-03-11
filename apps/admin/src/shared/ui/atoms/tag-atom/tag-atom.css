@@ -1,0 +1,27 @@
+.tag-atom {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag-atom--neutral {
+  background: #1a3e73;
+  color: #cbe4ff;
+}
+
+.tag-atom--success {
+  background: #0b3e47;
+  color: #8ff5f2;
+}
+
+.tag-atom--warn {
+  background: #4a3412;
+  color: #ffd58a;
+}
+
+.tag-atom--error {
+  background: #4f1f2b;
+  color: #ffc1ce;
+}

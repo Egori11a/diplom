@@ -1,0 +1,26 @@
+.auth-form-organism {
+  max-width: 520px;
+}
+
+.auth-form-organism h2 {
+  margin: 0 0 12px;
+}
+
+.auth-form-organism__grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+@media (min-width: 860px) {
+  .auth-form-organism__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-form-organism__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}

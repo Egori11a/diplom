@@ -1,0 +1,28 @@
+.button-atom {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.button-atom--primary {
+  background: var(--brand);
+  color: #062228;
+}
+
+.button-atom--primary:hover {
+  background: var(--brand-strong);
+}
+
+.button-atom--secondary {
+  background: #1a3e73;
+  color: #cbe4ff;
+}
+
+.button-atom--ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}

@@ -1,0 +1,33 @@
+.toggles-organism__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.toggles-organism__header h2 {
+  margin: 0;
+}
+
+.toggles-organism__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.toggles-organism__table th,
+.toggles-organism__table td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 9px 8px;
+  font-size: 13px;
+}
+
+.toggles-organism__table tr {
+  cursor: pointer;
+}
+
+.toggles-organism__table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}

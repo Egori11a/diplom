@@ -1,0 +1,24 @@
+.admin-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  display: grid;
+  gap: 16px;
+}
+
+.admin-page__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.admin-page__column {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1080px) {
+  .admin-page__layout {
+    grid-template-columns: 1.1fr 1.4fr;
+  }
+}

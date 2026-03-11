@@ -1,0 +1,16 @@
+.metric-molecule {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px;
+  background: #0f2b57;
+}
+
+.metric-molecule strong {
+  display: block;
+  font-size: 20px;
+}
+
+.metric-molecule__label {
+  color: var(--muted);
+  font-size: 13px;
+}

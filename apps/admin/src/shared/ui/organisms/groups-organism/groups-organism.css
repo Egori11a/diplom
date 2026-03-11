@@ -1,0 +1,48 @@
+.groups-organism__create-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+@media (min-width: 860px) {
+  .groups-organism__create-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.groups-organism__list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.groups-organism__item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  padding: 10px;
+}
+
+.groups-organism__item-header,
+.groups-organism__item-member,
+.groups-organism__inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.groups-organism__item-header,
+.groups-organism__item-member {
+  justify-content: space-between;
+}
+
+.groups-organism__member-input {
+  margin-bottom: 8px;
+}
+
+.groups-organism__muted {
+  color: var(--muted);
+  font-size: 13px;
+}

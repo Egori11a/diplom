@@ -1,0 +1,9 @@
+.input-atom {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}

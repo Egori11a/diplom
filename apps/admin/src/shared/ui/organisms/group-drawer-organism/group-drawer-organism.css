@@ -1,0 +1,12 @@
+.group-drawer-organism__fields {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.group-drawer-organism__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
