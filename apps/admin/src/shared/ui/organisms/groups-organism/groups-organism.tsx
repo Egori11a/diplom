@@ -1,27 +1,35 @@
-import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
+﻿import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
 import type { GroupsOrganismProps } from "./types";
 import "./groups-organism.css";
 
 export const GroupsOrganism = ({
   groups,
+  searchQuery,
   newGroupName,
   newGroupDescription,
-  memberInputs,
+  isBusy,
+  onSearchQueryChange,
   onNewGroupNameChange,
   onNewGroupDescriptionChange,
   onCreateGroup,
   onEditGroup,
-  onDeleteGroup,
-  onMemberInputChange,
-  onAddMember,
-  onRemoveMember
+  onDeleteGroup
 }: GroupsOrganismProps) => {
   return (
     <CardAtom>
-      <h2>Группы пользователей</h2>
+      <div className="groups-organism__header">
+        <h2>Группы команд</h2>
+        <InputAtom
+          className="groups-organism__search"
+          placeholder="Поиск группы по названию"
+          value={searchQuery}
+          onChange={(event) => onSearchQueryChange(event.target.value)}
+        />
+      </div>
+
       <div className="groups-organism__create-grid">
-        <FieldMolecule label="Название новой группы">
+        <FieldMolecule label="Название группы">
           <InputAtom value={newGroupName} onChange={(event) => onNewGroupNameChange(event.target.value)} />
         </FieldMolecule>
         <FieldMolecule label="Описание">
@@ -31,7 +39,8 @@ export const GroupsOrganism = ({
           />
         </FieldMolecule>
       </div>
-      <ButtonAtom type="button" onClick={onCreateGroup}>
+
+      <ButtonAtom type="button" onClick={onCreateGroup} disabled={isBusy || !newGroupName.trim()}>
         Создать группу
       </ButtonAtom>
 
@@ -41,48 +50,42 @@ export const GroupsOrganism = ({
             <div className="groups-organism__item-header">
               <strong>{group.name}</strong>
               <div className="groups-organism__inline">
-                <TagAtom variant="success">{group.members.length} участников</TagAtom>
                 <ButtonAtom
                   variant="secondary"
                   type="button"
                   onClick={() =>
-                    onEditGroup({ id: group.id, name: group.name, description: group.description })
+                    onEditGroup({
+                      id: group.id,
+                      name: group.name,
+                      description: group.description,
+                      initialName: group.name,
+                      members: group.members
+                    })
                   }
+                  disabled={isBusy}
                 >
                   Изменить
                 </ButtonAtom>
-                <ButtonAtom variant="secondary" type="button" onClick={() => onDeleteGroup(group.id)}>
+                <ButtonAtom
+                  variant="secondary"
+                  type="button"
+                  onClick={() => onDeleteGroup(group.id)}
+                  disabled={isBusy}
+                >
                   Удалить
                 </ButtonAtom>
               </div>
             </div>
             <p className="groups-organism__muted">{group.description || "Без описания"}</p>
-            <div className="groups-organism__inline groups-organism__member-input">
-              <InputAtom
-                placeholder="Добавить anonymous_id"
-                value={memberInputs[group.id] ?? ""}
-                onChange={(event) => onMemberInputChange(group.id, event.target.value)}
-              />
-              <ButtonAtom variant="secondary" type="button" onClick={() => onAddMember(group.id)}>
-                Добавить
-              </ButtonAtom>
+            <div className="groups-organism__inline">
+              <TagAtom variant="success">Участников: {group.members.length}</TagAtom>
+              <TagAtom variant="neutral">Подключено тогглов: {group.linkedTogglesCount}</TagAtom>
             </div>
-
-            {group.members.map((member) => (
-              <div className="groups-organism__item-member" key={member.memberKey}>
-                <span className="groups-organism__muted">{member.memberKey}</span>
-                <ButtonAtom
-                  variant="secondary"
-                  type="button"
-                  onClick={() => onRemoveMember(group.id, member.memberKey)}
-                >
-                  Убрать
-                </ButtonAtom>
-              </div>
-            ))}
           </article>
         ))}
       </div>
+
+      {!groups.length && <p className="groups-organism__muted">Ничего не найдено</p>}
     </CardAtom>
   );
 };

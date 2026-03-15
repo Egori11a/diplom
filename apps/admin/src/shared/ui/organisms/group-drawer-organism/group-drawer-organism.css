@@ -1,7 +1,63 @@
+﻿.group-drawer-organism__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.group-drawer-organism__header h2 {
+  margin: 0;
+}
+
 .group-drawer-organism__fields {
   display: grid;
   gap: 10px;
+  margin-bottom: 12px;
+}
+
+.group-drawer-organism__section {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
   margin-bottom: 10px;
+  background: var(--panel-soft);
+}
+
+.group-drawer-organism__section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.group-drawer-organism__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.group-drawer-organism__member-input {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.group-drawer-organism__members {
+  display: grid;
+  gap: 8px;
+}
+
+.group-drawer-organism__member-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.group-drawer-organism__muted {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
 }
 
 .group-drawer-organism__actions {

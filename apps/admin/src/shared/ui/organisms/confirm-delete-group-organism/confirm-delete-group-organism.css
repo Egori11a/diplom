@@ -1,0 +1,10 @@
+.confirm-delete-group-organism__text {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.confirm-delete-group-organism__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

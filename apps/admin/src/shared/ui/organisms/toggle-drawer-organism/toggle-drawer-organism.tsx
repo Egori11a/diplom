@@ -1,4 +1,4 @@
-import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
+﻿import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
 import type { ToggleDrawerOrganismProps } from "./types";
 import "./toggle-drawer-organism.css";
@@ -42,7 +42,7 @@ export const ToggleDrawerOrganism = ({
         </FieldMolecule>
       </div>
 
-      <FieldMolecule label="Группы сегмента (можно несколько)">
+      <FieldMolecule label="Команды сегмента (можно несколько)">
         <div className="toggle-drawer-organism__groups">
           {groups.map((group) => {
             const checked = form.groupNames.includes(group.name);

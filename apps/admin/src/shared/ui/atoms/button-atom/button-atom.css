@@ -1,10 +1,20 @@
-.button-atom {
+﻿.button-atom {
   border: 0;
   border-radius: 10px;
   padding: 10px 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.08s ease, filter 0.15s ease;
+}
+
+.button-atom:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.button-atom:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.7);
+  opacity: 0.7;
 }
 
 .button-atom--primary {
@@ -12,13 +22,17 @@
   color: #062228;
 }
 
-.button-atom--primary:hover {
+.button-atom--primary:hover:not(:disabled) {
   background: var(--brand-strong);
 }
 
 .button-atom--secondary {
   background: #1a3e73;
   color: #cbe4ff;
+}
+
+.button-atom--secondary:hover:not(:disabled) {
+  background: #215190;
 }
 
 .button-atom--ghost {

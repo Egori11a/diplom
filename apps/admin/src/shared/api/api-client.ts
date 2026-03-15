@@ -1,4 +1,4 @@
-const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+﻿const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export const login = async (email: string, password: string): Promise<string> => {
   const response = await fetch(`${apiUrl}/auth/login`, {

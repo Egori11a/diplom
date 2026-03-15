@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #061127;
   --bg-soft: #0b1d3f;
   --panel: #10264d;
@@ -21,8 +21,5 @@ body {
   margin: 0;
   font-family: "Segoe UI", "SF Pro Display", sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at 5% 0%, #0f2b57 0%, transparent 35%),
-    radial-gradient(circle at 95% 0%, #0f4a61 0%, transparent 30%),
-    var(--bg);
+  background: var(--bg);
 }

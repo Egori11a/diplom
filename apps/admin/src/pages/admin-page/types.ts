@@ -1,4 +1,4 @@
-import type { GroupView } from "../../shared/api";
+import type { GroupMember, GroupView } from "../../shared/api";
 
 export interface ToggleForm {
   id?: string;
@@ -16,6 +16,13 @@ export interface EditingGroup {
   id: string;
   name: string;
   description: string;
+  initialName: string;
+  members: GroupMember[];
+}
+
+export interface PendingDeleteGroup {
+  id: string;
+  name: string;
 }
 
 export interface AdminPageProps {
