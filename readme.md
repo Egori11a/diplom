@@ -267,27 +267,6 @@ pnpm build
 pnpm test
 ```
 
-## 10. Публикация SDK в npm
-
-Минимальный процесс:
-
-1. Проверить `packages/sdk/package.json` (имя, версия, exports).
-2. Выполнить:
-
-```bash
-pnpm --filter @ab/sdk build
-cd packages/sdk
-npm pack --dry-run
-npm publish --access public
-```
-
-3. Для следующих релизов:
-
-```bash
-npm version patch
-npm publish --access public
-```
-
-## 11. Лицензия
+## 10. Лицензия
 
 MIT
