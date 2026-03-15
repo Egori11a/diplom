@@ -153,6 +153,16 @@ export class ExperimentsService {
     return { id };
   }
 
+  async remove(id: string): Promise<{ ok: true }> {
+    const found = await this.db.pg.query("SELECT id FROM experiments WHERE id = $1", [id]);
+    if (!found.rowCount) {
+      throw new NotFoundException("Experiment not found");
+    }
+
+    await this.db.pg.query("DELETE FROM experiments WHERE id = $1", [id]);
+    return { ok: true };
+  }
+
   private validateWeights(dto: UpsertExperimentDto): void {
     const sum = dto.variants.reduce((acc, item) => acc + item.weightPercent, 0);
     if (sum !== 100) {

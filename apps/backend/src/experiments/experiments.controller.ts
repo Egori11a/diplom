@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -50,6 +51,18 @@ export class ExperimentsController {
   @Patch("admin/feature-toggles/:id")
   updateFeatureToggle(@Param("id") id: string, @Body() dto: UpsertExperimentDto) {
     return this.experimentsService.update(id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete("admin/experiments/:id")
+  remove(@Param("id") id: string) {
+    return this.experimentsService.remove(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete("admin/feature-toggles/:id")
+  removeFeatureToggle(@Param("id") id: string) {
+    return this.experimentsService.remove(id);
   }
 
   @Get("sdk/experiments/active")
