@@ -1,21 +1,26 @@
 {
-  "name": "@ab/sdk",
+  "name": "@mathculture/ab-sdk",
   "version": "0.1.0",
+  "description": "React 18+ SDK for self-hosted feature toggles and A/B testing",
   "license": "MIT",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./build/index.d.ts",
+      "default": "./build/index.js"
     }
   },
   "peerDependencies": {
     "react": ">=18"
-  },
-  "dependencies": {
-    "@ab/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
@@ -25,6 +30,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "lint": "echo \"no lint\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"

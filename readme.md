@@ -9,7 +9,7 @@ AB Platform решает две задачи:
 1. Управление фича-тогглами и раскаткой функциональности по сегментам.
 2. Проведение A/B-тестов с централизованной аналитикой (impression/click/conversion, CTR, CR, Wilson interval).
 
-Главный публичный артефакт - npm SDK для React (`@ab/sdk`).
+Главный публичный артефакт - npm SDK для React (`@mathculture/ab-sdk`).
 
 Self-host часть платформы:
 
@@ -95,14 +95,14 @@ docker compose up -d --build
 Установка SDK:
 
 ```bash
-npm i @ab/sdk
-# или pnpm add @ab/sdk
+npm i @mathculture/ab-sdk
+# или pnpm add @mathculture/ab-sdk
 ```
 
 Подключение провайдера в root:
 
 ```tsx
-import { ABProvider } from "@ab/sdk";
+import { ABProvider } from "@mathculture/ab-sdk";
 
 export function Root() {
   return (
@@ -125,7 +125,7 @@ export function Root() {
 Использование в feature-компоненте:
 
 ```tsx
-import { useAB } from "@ab/sdk";
+import { useAB } from "@mathculture/ab-sdk";
 
 export function CheckoutCTA() {
   const { enabled, variant, track } = useAB("checkout-cta");
@@ -267,6 +267,27 @@ pnpm build
 pnpm test
 ```
 
-## 10. Лицензия
+## 10. Публикация SDK в npm
+
+Минимальный процесс:
+
+1. Проверить `packages/sdk/package.json` (имя, версия, exports).
+2. Выполнить:
+
+```bash
+pnpm --filter @mathculture/ab-sdk build
+cd packages/sdk
+npm pack --dry-run
+npm publish --access public
+```
+
+3. Для следующих релизов:
+
+```bash
+npm version patch
+npm publish --access public
+```
+
+## 11. Лицензия
 
 MIT

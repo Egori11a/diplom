@@ -1,4 +1,4 @@
-﻿# @ab/sdk
+﻿# @mathculture/ab-sdk
 
 React 18+ SDK for local/self-host A/B experiments.
 
@@ -17,3 +17,4 @@ React 18+ SDK for local/self-host A/B experiments.
 ```
 
 See root `readme.md` for full self-host setup.
+
