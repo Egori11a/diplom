@@ -1,5 +1,5 @@
 ﻿# AB Platform
-
+https://www.npmjs.com/package/@mathculture/ab-sdk
 Официальная документация проекта AB Platform: open-source self-host решение для feature toggle и A/B-тестирования в React-приложениях.
 
 ## 1. Назначение платформы
