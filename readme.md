@@ -8,7 +8,7 @@ https://www.npmjs.com/package/@mathculture/ab-sdk
 AB Platform решает две задачи:
 
 1. Управление фича-тогглами и раскаткой функциональности по сегментам.
-2. Проведение A/B-тестов с централизованной аналитикой (impression/click/conversion, CTR, CR, Wilson interval).
+2. Проведение A/B-тестов и сбор событий (analytics module временно отключен, дорабатывается отдельно).
 
 Главный публичный артефакт - npm SDK для React (`@mathculture/ab-sdk`).
 
@@ -25,9 +25,8 @@ Self-host часть платформы:
 
 ## 3. Состав репозитория
 
-- `apps/backend` - backend API и аналитика
+- `apps/backend` - backend API и обработка событий
 - `apps/admin` - админ-панель
-- `apps/demo-app` - демонстрационное React-приложение
 - `packages/sdk` - React SDK для встраивания в сторонние приложения
 - `packages/shared-types` - общие типы
 
@@ -83,7 +82,6 @@ docker compose up -d --build
 После запуска по умолчанию:
 
 - Admin UI: `http://localhost:5173`
-- Demo app: `http://localhost:5176`
 - Backend API: `http://localhost:3000`
 
 Дефолтный админ:
@@ -170,7 +168,7 @@ export function CheckoutCTA() {
    - `GET /sdk/experiments/active`
    - `POST /sdk/events/batch`
 3. В админке меняешь правила -> клиент через TTL подхватывает новые настройки.
-4. События отражаются в аналитике.
+4. События принимаются backend и сохраняются в ClickHouse.
 
 ### 6.5. Рекомендации эксплуатации
 
@@ -246,9 +244,7 @@ Groups:
 - `POST /admin/groups/:id/members`
 - `DELETE /admin/groups/:id/members/:memberKey`
 
-Analytics:
-
-- `GET /admin/analytics/experiment/:key`
+Analytics endpoints временно отключены.
 
 ## 9. Локальная разработка
 

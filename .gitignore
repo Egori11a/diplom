@@ -10,3 +10,5 @@ apps/demo-app
 ОписаниеВКР.docx
 ПримерноеОписаниеИСтруктура.pdf
 docs-defense-checklist.md
+apps/admin/playwright-report
+apps/admin/test-results

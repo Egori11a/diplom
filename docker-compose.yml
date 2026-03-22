@@ -65,17 +65,6 @@ services:
     ports:
       - "5173:80"
 
-  demo-app:
-    build:
-      context: .
-      dockerfile: apps/demo-app/Dockerfile
-      args:
-        VITE_API_URL: http://localhost:3000
-    depends_on:
-      - backend
-    ports:
-      - "5176:80"
-
 volumes:
   pg_data:
   ch_data:

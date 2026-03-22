@@ -9,6 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "lint": "echo \"no lint\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -18,6 +20,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.53.2",
     "@originjs/vite-plugin-federation": "^1.3.9",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
