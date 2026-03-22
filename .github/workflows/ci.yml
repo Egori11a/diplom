@@ -219,7 +219,7 @@ jobs:
         env:
           VITE_API_URL: http://localhost:3000
         run: |
-          pnpm --filter @ab/admin preview -- --host 127.0.0.1 --port 5173 > admin.log 2>&1 &
+          pnpm --filter @ab/admin exec vite preview --host 127.0.0.1 --port 5173 --strictPort > admin.log 2>&1 &
           for i in {1..60}; do
             if curl -fsS "http://localhost:5173" >/dev/null; then
               echo "Admin is ready"
