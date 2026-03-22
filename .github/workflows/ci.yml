@@ -1,0 +1,258 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  quality:
+    name: Build, Typecheck, Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build
+        run: |
+          pnpm --filter @ab/shared-types build
+          pnpm --filter @mathculture/ab-sdk build
+          pnpm --filter @ab/backend build
+          pnpm --filter @ab/admin build
+
+      - name: Typecheck
+        run: |
+          pnpm --filter @ab/shared-types typecheck
+          pnpm --filter @mathculture/ab-sdk typecheck
+          pnpm --filter @ab/backend typecheck
+          pnpm --filter @ab/admin typecheck
+
+      - name: Unit tests
+        run: |
+          pnpm --filter @mathculture/ab-sdk test
+          pnpm --filter @ab/backend test
+          pnpm --filter @ab/admin test
+
+  backend-e2e:
+    name: Backend E2E
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ab_platform
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ab_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.8
+        env:
+          CLICKHOUSE_DB: default
+          CLICKHOUSE_USER: ab_user
+          CLICKHOUSE_PASSWORD: ab_pass
+        ports:
+          - 8123:8123
+          - 9000:9000
+        options: >-
+          --health-cmd "wget -qO- http://localhost:8123/ping | grep -q Ok."
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build backend
+        run: |
+          pnpm --filter @ab/shared-types build
+          pnpm --filter @ab/backend build
+
+      - name: Start backend
+        env:
+          PORT: 3000
+          JWT_SECRET: local-dev-secret
+          ADMIN_EMAIL: admin@local.test
+          ADMIN_PASSWORD: admin123
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/ab_platform
+          CLICKHOUSE_URL: http://localhost:8123
+          CLICKHOUSE_USER: ab_user
+          CLICKHOUSE_PASSWORD: ab_pass
+        run: |
+          pnpm --filter @ab/backend start > backend.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS "http://localhost:3000/sdk/experiments/active?appId=demo-app" >/dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat backend.log
+          exit 1
+
+      - name: Run backend e2e tests
+        run: pnpm --filter @ab/backend test:e2e
+
+      - name: Print backend log on failure
+        if: failure()
+        run: cat backend.log
+
+  admin-e2e:
+    name: Admin Smoke E2E
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ab_platform
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ab_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.8
+        env:
+          CLICKHOUSE_DB: default
+          CLICKHOUSE_USER: ab_user
+          CLICKHOUSE_PASSWORD: ab_pass
+        ports:
+          - 8123:8123
+          - 9000:9000
+        options: >-
+          --health-cmd "wget -qO- http://localhost:8123/ping | grep -q Ok."
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Install Playwright browser
+        run: pnpm --filter @ab/admin exec playwright install --with-deps chromium
+
+      - name: Build apps
+        run: |
+          pnpm --filter @ab/shared-types build
+          pnpm --filter @ab/backend build
+          pnpm --filter @ab/admin build
+
+      - name: Start backend
+        env:
+          PORT: 3000
+          JWT_SECRET: local-dev-secret
+          ADMIN_EMAIL: admin@local.test
+          ADMIN_PASSWORD: admin123
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/ab_platform
+          CLICKHOUSE_URL: http://localhost:8123
+          CLICKHOUSE_USER: ab_user
+          CLICKHOUSE_PASSWORD: ab_pass
+        run: |
+          pnpm --filter @ab/backend start > backend.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS "http://localhost:3000/sdk/experiments/active?appId=demo-app" >/dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat backend.log
+          exit 1
+
+      - name: Start admin preview
+        env:
+          VITE_API_URL: http://localhost:3000
+        run: |
+          pnpm --filter @ab/admin preview -- --host 127.0.0.1 --port 5173 > admin.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS "http://localhost:5173" >/dev/null; then
+              echo "Admin is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Admin failed to start"
+          cat admin.log
+          exit 1
+
+      - name: Run admin smoke e2e
+        env:
+          ADMIN_BASE_URL: http://localhost:5173
+        run: pnpm --filter @ab/admin test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/admin/playwright-report
+            apps/admin/test-results
+          if-no-files-found: ignore
+
+      - name: Print logs on failure
+        if: failure()
+        run: |
+          echo "==== backend.log ===="
+          cat backend.log || true
+          echo "==== admin.log ===="
+          cat admin.log || true
