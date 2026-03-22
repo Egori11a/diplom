@@ -1,6 +1,6 @@
 {
   "name": "@mathculture/ab-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React 18+ SDK for self-hosted feature toggles and A/B testing",
   "license": "MIT",
   "type": "module",
