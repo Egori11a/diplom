@@ -21,7 +21,7 @@ Self-host часть платформы:
 
 ## 2. Статус
 
-- Текущий статус: `v0.1.0` (MVP baseline, условно минимально рабочая версия)
+- Текущий статус: `v0.1.1`
 
 ## 3. Состав репозитория
 
@@ -69,7 +69,7 @@ Self-host часть платформы:
 
 ```bash
 git clone <repo-url>
-cd diplom
+cd your_project
 pnpm install
 ```
 
@@ -264,27 +264,11 @@ pnpm build
 pnpm test
 ```
 
-## 10. Публикация SDK в npm
 
-Минимальный процесс:
-
-1. Проверить `packages/sdk/package.json` (имя, версия, exports).
-2. Выполнить:
-
-```bash
-pnpm --filter @mathculture/ab-sdk build
-cd packages/sdk
-npm pack --dry-run
-npm publish --access public
-```
-
-3. Для следующих релизов:
-
-```bash
-npm version patch
-npm publish --access public
-```
-
-## 11. Лицензия
+## 10. Лицензия
 
 MIT
+
+## 11. Дополнительные материалы
+
+- [SDK Integration Playbook](./docs/sdk-integration-playbook.md) — подробный гайд по встраиванию SDK, требованиям к frontend/backend
