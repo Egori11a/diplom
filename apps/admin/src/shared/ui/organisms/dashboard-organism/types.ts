@@ -1,7 +1,9 @@
-import type { AnalyticsView, ToggleView } from "../../../api";
+import type { ToggleAnalyticsView, ToggleView } from "../../../api";
 
 export interface DashboardOrganismProps {
   selectedKey: string;
   selectedToggle?: ToggleView;
-  metrics?: AnalyticsView;
+  analytics?: ToggleAnalyticsView;
+  isLoading?: boolean;
+  errorMessage?: string;
 }

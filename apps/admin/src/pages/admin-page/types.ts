@@ -1,6 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { GroupMember, GroupView, ToggleView } from "../../shared/api";
 
+export interface ToggleFormVariant {
+  key: string;
+  weightPercent: number;
+}
+
 export interface ToggleForm {
   id?: string;
   appId: string;
@@ -9,8 +14,10 @@ export interface ToggleForm {
   featureKey: string;
   featureEnabled: boolean;
   rolloutPercent: number;
+  trafficPercent: number;
   groupNames: string[];
   includeIdsRaw: string;
+  variants: ToggleFormVariant[];
 }
 
 export interface EditingGroup {
@@ -57,8 +64,10 @@ export interface ToggleDraftSource {
   featureKey: string;
   featureEnabled: boolean;
   rolloutPercent?: number;
+  trafficPercent?: number;
   groupNames?: string[];
   includeIds?: string[];
+  variants?: ToggleFormVariant[];
 }
 
 export interface TogglePayloadContext {
@@ -67,6 +76,7 @@ export interface TogglePayloadContext {
 
 export interface UseAdminDataParams {
   token: string;
+  selectedToggleId?: string | null;
   newGroupName: string;
   newGroupDescription: string;
   setNewGroupName: Dispatch<SetStateAction<string>>;

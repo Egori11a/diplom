@@ -65,7 +65,7 @@ export interface ToggleView {
   variants: VariantView[];
 }
 
-export interface AnalyticsView {
+export interface AnalyticsMetricsView {
   impressions: number;
   clicks: number;
   conversions: number;
@@ -74,6 +74,19 @@ export interface AnalyticsView {
   wilson_low: number;
   wilson_high: number;
 }
+
+export interface VariantAnalyticsView extends AnalyticsMetricsView {
+  variantKey: string;
+}
+
+export interface ToggleAnalyticsView {
+  experimentKey: string;
+  appId?: string;
+  metrics: AnalyticsMetricsView;
+  variants: VariantAnalyticsView[];
+}
+
+export type AnalyticsView = AnalyticsMetricsView;
 
 export const parseCsv = (value: string): string[] =>
   value

@@ -13,13 +13,19 @@ import type {
   ToggleForm
 } from "../types";
 
+const cloneDefaultToggleForm = (): ToggleForm => ({
+  ...defaultToggleForm,
+  variants: defaultToggleForm.variants.map((variant) => ({ ...variant }))
+});
+
 export const useAdminUiState = () => {
   const [activeScreen, setActiveScreen] = useState<AdminScreen>("onboarding");
   const [groupSearchQuery, setGroupSearchQuery] = useState("");
   const [toggleSearchQuery, setToggleSearchQuery] = useState("");
+  const [selectedToggleId, setSelectedToggleId] = useState<string | null>(null);
 
   const [toggleDrawerOpen, setToggleDrawerOpen] = useState(false);
-  const [toggleForm, setToggleForm] = useState<ToggleForm>(defaultToggleForm);
+  const [toggleForm, setToggleForm] = useState<ToggleForm>(cloneDefaultToggleForm);
 
   const [newGroupName, setNewGroupName] = useState(defaultGroupName);
   const [newGroupDescription, setNewGroupDescription] =
@@ -55,11 +61,16 @@ export const useAdminUiState = () => {
   }, [pendingDeleteGroup, editingGroup, toggleDrawerOpen]);
 
   const openCreateToggle = () => {
-    setToggleForm(defaultToggleForm);
+    setToggleForm(cloneDefaultToggleForm());
     setToggleDrawerOpen(true);
   };
 
+  const selectToggle = (toggleId: string) => {
+    setSelectedToggleId(toggleId);
+  };
+
   const openEditToggle = (toggle: ToggleView) => {
+    setSelectedToggleId(toggle.id);
     setToggleForm({
       id: toggle.id,
       appId: toggle.appId,
@@ -68,8 +79,16 @@ export const useAdminUiState = () => {
       featureKey: toggle.featureKey,
       featureEnabled: toggle.featureEnabled,
       rolloutPercent: toggle.segmentRules?.rolloutPercent ?? 100,
+      trafficPercent: toggle.trafficPercent ?? 100,
       groupNames: toggle.segmentRules?.includeGroups ?? [],
-      includeIdsRaw: (toggle.segmentRules?.includeAnonymousIds ?? []).join(",")
+      includeIdsRaw: (toggle.segmentRules?.includeAnonymousIds ?? []).join(","),
+      variants:
+        toggle.variants.length > 0
+          ? toggle.variants.map((variant) => ({
+              key: variant.key,
+              weightPercent: variant.weightPercent
+            }))
+          : cloneDefaultToggleForm().variants
     });
     setToggleDrawerOpen(true);
   };
@@ -81,6 +100,8 @@ export const useAdminUiState = () => {
     setGroupSearchQuery,
     toggleSearchQuery,
     setToggleSearchQuery,
+    selectedToggleId,
+    setSelectedToggleId,
     toggleDrawerOpen,
     setToggleDrawerOpen,
     toggleForm,
@@ -95,6 +116,7 @@ export const useAdminUiState = () => {
     setEditingGroup,
     pendingDeleteGroup,
     setPendingDeleteGroup,
+    selectToggle,
     openCreateToggle,
     openEditToggle
   };

@@ -1,7 +1,16 @@
-﻿import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
+import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
+import type { ToggleFormVariant } from "../../../../pages/admin-page/types";
 import type { ToggleDrawerOrganismProps } from "./types";
 import "./toggle-drawer-organism.css";
+
+const normalizeNumberInput = (value: string): number => {
+  if (!value.trim()) {
+    return 0;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 export const ToggleDrawerOrganism = ({
   groups,
@@ -12,20 +21,55 @@ export const ToggleDrawerOrganism = ({
   onToggleGroup,
   onSave
 }: ToggleDrawerOrganismProps) => {
+  const updateVariant = (
+    index: number,
+    patch: Partial<ToggleFormVariant>
+  ): void => {
+    const nextVariants = form.variants.map((variant, variantIndex) =>
+      variantIndex === index ? { ...variant, ...patch } : variant
+    );
+    onFormChange({ variants: nextVariants });
+  };
+
+  const removeVariant = (index: number): void => {
+    if (form.variants.length <= 1) {
+      return;
+    }
+    onFormChange({
+      variants: form.variants.filter((_, variantIndex) => variantIndex !== index)
+    });
+  };
+
+  const addVariant = (): void => {
+    const nextIndex = form.variants.length + 1;
+    onFormChange({
+      variants: [
+        ...form.variants,
+        {
+          key: `V${nextIndex}`,
+          weightPercent: 0
+        }
+      ]
+    });
+  };
+
   return (
     <DrawerAtom>
       <div className="toggle-drawer-organism__header">
-        <h2>{form.id ? "Редактирование тоггла" : "Создание тоггла"}</h2>
+        <h2>{form.id ? "Edit toggle" : "Create toggle"}</h2>
         <ButtonAtom variant="secondary" type="button" onClick={onClose}>
-          Закрыть
+          Close
         </ButtonAtom>
       </div>
 
       <div className="toggle-drawer-organism__grid">
         <FieldMolecule label="App ID">
-          <InputAtom value={form.appId} onChange={(event) => onFormChange({ appId: event.target.value })} />
+          <InputAtom
+            value={form.appId}
+            onChange={(event) => onFormChange({ appId: event.target.value })}
+          />
         </FieldMolecule>
-        <FieldMolecule label="Toggle Key">
+        <FieldMolecule label="Feature key">
           <InputAtom
             value={form.featureKey}
             onChange={(event) => onFormChange({ featureKey: event.target.value })}
@@ -34,21 +78,32 @@ export const ToggleDrawerOrganism = ({
       </div>
 
       <div className="toggle-drawer-organism__grid">
-        <FieldMolecule label="Experiment Key">
-          <InputAtom value={form.key} onChange={(event) => onFormChange({ key: event.target.value })} />
+        <FieldMolecule label="Experiment key">
+          <InputAtom
+            value={form.key}
+            onChange={(event) => onFormChange({ key: event.target.value })}
+          />
         </FieldMolecule>
-        <FieldMolecule label="Название">
-          <InputAtom value={form.name} onChange={(event) => onFormChange({ name: event.target.value })} />
+        <FieldMolecule label="Name">
+          <InputAtom
+            value={form.name}
+            onChange={(event) => onFormChange({ name: event.target.value })}
+          />
         </FieldMolecule>
       </div>
 
-      <FieldMolecule label="Команды сегмента (можно несколько)">
+      <FieldMolecule label="Segment groups (multi-select)">
         <div className="toggle-drawer-organism__groups">
           {groups.map((group) => {
             const checked = form.groupNames.includes(group.name);
             return (
               <label className="toggle-drawer-organism__checkbox" key={group.id}>
-                <CheckboxAtom checked={checked} onChange={(event) => onToggleGroup(group.name, event.target.checked)} />
+                <CheckboxAtom
+                  checked={checked}
+                  onChange={(event) =>
+                    onToggleGroup(group.name, event.target.checked)
+                  }
+                />
                 {group.name}
               </label>
             );
@@ -56,36 +111,94 @@ export const ToggleDrawerOrganism = ({
         </div>
       </FieldMolecule>
 
-      <div className="toggle-drawer-organism__grid">
+      <div className="toggle-drawer-organism__grid toggle-drawer-organism__grid--triple">
         <FieldMolecule label="Rollout %">
           <InputAtom
             type="number"
             min={0}
             max={100}
             value={form.rolloutPercent}
-            onChange={(event) => onFormChange({ rolloutPercent: Number(event.target.value) })}
+            onChange={(event) =>
+              onFormChange({
+                rolloutPercent: normalizeNumberInput(event.target.value)
+              })
+            }
+          />
+        </FieldMolecule>
+        <FieldMolecule label="Traffic %">
+          <InputAtom
+            type="number"
+            min={0}
+            max={100}
+            value={form.trafficPercent}
+            onChange={(event) =>
+              onFormChange({
+                trafficPercent: normalizeNumberInput(event.target.value)
+              })
+            }
           />
         </FieldMolecule>
         <label className="toggle-drawer-organism__checkbox toggle-drawer-organism__feature-switch">
           <CheckboxAtom
             checked={form.featureEnabled}
-            onChange={(event) => onFormChange({ featureEnabled: event.target.checked })}
+            onChange={(event) =>
+              onFormChange({ featureEnabled: event.target.checked })
+            }
           />
-          Фича включена
+          Feature enabled
         </label>
       </div>
 
-      <FieldMolecule label="Доп. anonymous_id через запятую">
+      <FieldMolecule label="Additional anonymous ids (comma-separated)">
         <TextareaAtom
           value={form.includeIdsRaw}
           onChange={(event) => onFormChange({ includeIdsRaw: event.target.value })}
-          placeholder="id-1,id-2"
+          placeholder="user:egor,user:maria,device:ios"
         />
+      </FieldMolecule>
+
+      <FieldMolecule label="Variants (flexible weights)">
+        <div className="toggle-drawer-organism__variants">
+          {form.variants.map((variant, index) => (
+            <div className="toggle-drawer-organism__variant-row" key={`${variant.key}-${index}`}>
+              <InputAtom
+                value={variant.key}
+                onChange={(event) =>
+                  updateVariant(index, { key: event.target.value })
+                }
+                placeholder="Variant key"
+              />
+              <InputAtom
+                type="number"
+                min={0}
+                max={100}
+                value={variant.weightPercent}
+                onChange={(event) =>
+                  updateVariant(index, {
+                    weightPercent: normalizeNumberInput(event.target.value)
+                  })
+                }
+                placeholder="Weight %"
+              />
+              <ButtonAtom
+                variant="secondary"
+                type="button"
+                onClick={() => removeVariant(index)}
+                disabled={form.variants.length <= 1}
+              >
+                Remove
+              </ButtonAtom>
+            </div>
+          ))}
+          <ButtonAtom variant="secondary" type="button" onClick={addVariant}>
+            Add variant
+          </ButtonAtom>
+        </div>
       </FieldMolecule>
 
       <div className="toggle-drawer-organism__actions">
         <ButtonAtom type="button" onClick={onSave}>
-          {form.id ? "Сохранить" : "Создать"}
+          {form.id ? "Save" : "Create"}
         </ButtonAtom>
       </div>
 

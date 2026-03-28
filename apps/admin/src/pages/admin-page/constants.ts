@@ -7,8 +7,13 @@ export const defaultToggleForm: ToggleForm = {
   featureKey: "new-cta",
   featureEnabled: true,
   rolloutPercent: 100,
+  trafficPercent: 100,
   groupNames: [],
-  includeIdsRaw: ""
+  includeIdsRaw: "",
+  variants: [
+    { key: "A", weightPercent: 50 },
+    { key: "B", weightPercent: 50 }
+  ]
 };
 
 export const defaultGroupName = "beta-team";

@@ -8,7 +8,7 @@ https://www.npmjs.com/package/@mathculture/ab-sdk
 AB Platform решает две задачи:
 
 1. Управление фича-тогглами и раскаткой функциональности по сегментам.
-2. Проведение A/B-тестов и сбор событий (analytics module временно отключен, дорабатывается отдельно).
+2. Проведение A/B-тестов, сбор событий и просмотр базовой аналитики по тогглам.
 
 Главный публичный артефакт - npm SDK для React (`@mathculture/ab-sdk`).
 
@@ -244,7 +244,9 @@ Groups:
 - `POST /admin/groups/:id/members`
 - `DELETE /admin/groups/:id/members/:memberKey`
 
-Analytics endpoints временно отключены.
+Analytics:
+
+- `GET /admin/analytics/feature-toggles/:experimentKey?appId=...` (JWT)
 
 ## 9. Локальная разработка
 
