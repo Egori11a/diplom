@@ -1,34 +1,52 @@
-import { expect, test } from "@playwright/test";
+﻿import { expect, test } from "@playwright/test";
+
+const ui = {
+  loginHeading: /Вход администратора|Admin login/i,
+  emailLabel: /Почта|Email/i,
+  passwordLabel: /Пароль|Password/i,
+  loginButton: /Войти|Sign in|Login/i,
+  onboardingTab: /Обучение|Onboarding/i,
+  groupsTab: /Группы|Groups/i,
+  togglesTab: /Фича-?тогглы|Feature toggles|Toggles/i,
+  groupsHeading: /Группы команд|Team groups|Groups/i,
+  groupNameLabel: /Название группы|Group name/i,
+  descriptionLabel: /Описание|Description/i,
+  createGroupButton: /Создать группу|Create group/i,
+  togglesHeading: /Feature toggles|Фича-?тогглы/i,
+  createToggleButton: /Create toggle|Создать тоггл/i,
+  createToggleHeading: /Create toggle|Создание тоггла/i,
+  closeButton: /Close|Закрыть/i
+};
 
 test.describe("Admin Smoke", () => {
   test("login and basic navigation", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "Вход администратора" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: ui.loginHeading })).toBeVisible();
 
-    await page.getByLabel("Почта").fill("admin@local.test");
-    await page.getByLabel("Пароль").fill("admin123");
-    await page.getByRole("button", { name: "Войти" }).click();
+    await page.getByLabel(ui.emailLabel).fill("admin@local.test");
+    await page.getByLabel(ui.passwordLabel).fill("admin123");
+    await page.getByRole("button", { name: ui.loginButton }).click();
 
-    await expect(page.getByRole("button", { name: "Обучение" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Группы" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Фича-тогглы" })).toBeVisible();
+    await expect(page.getByRole("button", { name: ui.onboardingTab })).toBeVisible();
+    await expect(page.getByRole("button", { name: ui.groupsTab })).toBeVisible();
+    await expect(page.getByRole("button", { name: ui.togglesTab })).toBeVisible();
 
-    await page.getByRole("button", { name: "Группы" }).click();
-    await expect(page.getByRole("heading", { name: "Группы команд" })).toBeVisible();
+    await page.getByRole("button", { name: ui.groupsTab }).click();
+    await expect(page.getByRole("heading", { name: ui.groupsHeading })).toBeVisible();
 
     const groupName = `pw-group-${Date.now()}`;
-    await page.getByLabel("Название группы").fill(groupName);
-    await page.getByLabel("Описание").fill("Playwright smoke group");
-    await page.getByRole("button", { name: "Создать группу" }).click();
+    await page.getByLabel(ui.groupNameLabel).fill(groupName);
+    await page.getByLabel(ui.descriptionLabel).fill("Playwright smoke group");
+    await page.getByRole("button", { name: ui.createGroupButton }).click();
     await expect(page.getByText(groupName)).toBeVisible();
 
-    await page.getByRole("button", { name: "Фича-тогглы" }).click();
-    await expect(page.getByRole("heading", { name: "Фича-тогглы" })).toBeVisible();
+    await page.getByRole("button", { name: ui.togglesTab }).click();
+    await expect(page.getByRole("heading", { name: ui.togglesHeading })).toBeVisible();
 
-    await page.getByRole("button", { name: "Создать тоггл" }).click();
-    await expect(page.getByRole("heading", { name: "Создание тоггла" })).toBeVisible();
-    await page.getByRole("button", { name: "Закрыть" }).click();
-    await expect(page.getByRole("heading", { name: "Создание тоггла" })).toHaveCount(0);
+    await page.getByRole("button", { name: ui.createToggleButton }).click();
+    await expect(page.getByRole("heading", { name: ui.createToggleHeading })).toBeVisible();
+    await page.getByRole("button", { name: ui.closeButton }).click();
+    await expect(page.getByRole("heading", { name: ui.createToggleHeading })).toHaveCount(0);
   });
 });
