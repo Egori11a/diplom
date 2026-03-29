@@ -36,12 +36,20 @@
   vertical-align: middle;
 }
 
-.toggles-organism__table tbody tr {
-  cursor: pointer;
+.toggles-organism__row:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.toggles-organism__table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04);
+.toggles-organism__row--selected {
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.toggles-organism__actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .toggles-organism__empty {

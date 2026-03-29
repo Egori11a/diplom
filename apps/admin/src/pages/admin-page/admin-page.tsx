@@ -2,6 +2,7 @@ import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
 import {
   AuthFormOrganism,
   ConfirmDeleteGroupOrganism,
+  DashboardOrganism,
   GroupDrawerOrganism,
   GroupsOrganism,
   HeroOrganism,
@@ -34,6 +35,8 @@ export const AdminPage = ({
     setGroupSearchQuery,
     toggleSearchQuery,
     setToggleSearchQuery,
+    selectedToggleId,
+    setSelectedToggleId,
     toggleDrawerOpen,
     setToggleDrawerOpen,
     toggleForm,
@@ -55,6 +58,8 @@ export const AdminPage = ({
   const {
     groups,
     toggles,
+    selectedToggle,
+    analyticsQuery,
     createGroupMutation,
     updateGroupMutation,
     deleteGroupMutation,
@@ -64,9 +69,11 @@ export const AdminPage = ({
     deleteToggleMutation,
     isBusy,
     saveError,
+    analyticsError,
     memberInputForDrawer
   } = useAdminData({
     token,
+    selectedToggleId,
     newGroupName,
     newGroupDescription,
     setNewGroupName,
@@ -159,15 +166,31 @@ export const AdminPage = ({
           )}
 
           {activeScreen === "toggles" && (
-            <TogglesOrganism
-              toggles={filteredToggles}
-              searchQuery={toggleSearchQuery}
-              isBusy={isBusy}
-              onSearchQueryChange={setToggleSearchQuery}
-              onCreateToggle={openCreateToggle}
-              onSelectToggle={openEditToggle}
-              onDeleteToggle={(toggleId) => deleteToggleMutation.mutate(toggleId)}
-            />
+            <>
+              <TogglesOrganism
+                toggles={filteredToggles}
+                searchQuery={toggleSearchQuery}
+                selectedToggleId={selectedToggleId}
+                isBusy={isBusy}
+                onSearchQueryChange={setToggleSearchQuery}
+                onCreateToggle={openCreateToggle}
+                onEditToggle={openEditToggle}
+                onInspectToggle={setSelectedToggleId}
+                onDeleteToggle={(toggleId) => {
+                  setSelectedToggleId((previous) =>
+                    previous === toggleId ? null : previous
+                  );
+                  deleteToggleMutation.mutate(toggleId);
+                }}
+              />
+              <DashboardOrganism
+                selectedKey={selectedToggle?.key ?? ""}
+                selectedToggle={selectedToggle ?? undefined}
+                analytics={analyticsQuery.data}
+                isLoading={analyticsQuery.isFetching}
+                errorMessage={analyticsError}
+              />
+            </>
           )}
         </>
       )}

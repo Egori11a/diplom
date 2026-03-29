@@ -64,7 +64,7 @@ export class UpsertExperimentDto {
   status!: "draft" | "active" | "paused" | "archived";
 
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(100)
   trafficPercent!: number;
 

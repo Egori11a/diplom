@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isExperimentEnabled, resolveVariant } from "./assignment";
+import { isExperimentEnabled, isInTraffic, resolveVariant } from "./assignment";
 import type { ActiveExperiment } from "./types";
 
 const baseExperiment: ActiveExperiment = {
@@ -29,6 +29,15 @@ describe("resolveVariant", () => {
     });
 
     expect(result).toBe("control");
+  });
+
+  it("returns 'on' when traffic allows user and variants are not configured", () => {
+    const result = resolveVariant("user-1", {
+      ...baseExperiment,
+      variants: []
+    });
+
+    expect(result).toBe("on");
   });
 });
 
@@ -67,5 +76,19 @@ describe("isExperimentEnabled", () => {
     });
 
     expect(enabled).toBe(false);
+  });
+});
+
+describe("isInTraffic", () => {
+  it("returns false when trafficPercent is 0", () => {
+    expect(
+      isInTraffic("user-1", { ...baseExperiment, trafficPercent: 0 })
+    ).toBe(false);
+  });
+
+  it("returns true when trafficPercent is 100", () => {
+    expect(
+      isInTraffic("user-1", { ...baseExperiment, trafficPercent: 100 })
+    ).toBe(true);
   });
 });

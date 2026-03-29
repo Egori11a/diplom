@@ -16,3 +16,36 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
+
+.dashboard-organism__error {
+  margin: 10px 0 0;
+  color: #ffd0d8;
+  background: #612533;
+  border-radius: 10px;
+  width: fit-content;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-organism__variants {
+  margin-top: 14px;
+}
+
+.dashboard-organism__variants h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.dashboard-organism__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-organism__table th,
+.dashboard-organism__table td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 8px;
+  font-size: 12px;
+}

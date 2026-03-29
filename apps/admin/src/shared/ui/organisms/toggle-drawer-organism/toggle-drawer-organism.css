@@ -39,10 +39,33 @@
   align-items: center;
 }
 
+@media (min-width: 1080px) {
+  .toggle-drawer-organism__grid--triple {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
 .toggle-drawer-organism__feature-switch {
   margin-top: 24px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.toggle-drawer-organism__variants {
+  display: grid;
+  gap: 8px;
+}
+
+.toggle-drawer-organism__variant-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 860px) {
+  .toggle-drawer-organism__variant-row {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  }
 }
 
 .toggle-drawer-organism__actions {

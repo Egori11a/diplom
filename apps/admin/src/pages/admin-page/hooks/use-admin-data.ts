@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   authFetch,
-  parseCsv,
   type GroupView,
+  type ToggleAnalyticsView,
   type ToggleView
 } from "../../../shared/api";
 import type {
@@ -10,9 +10,17 @@ import type {
   TogglesQuery,
   UseAdminDataParams
 } from "../types";
+import {
+  buildTogglePayload,
+  removeToggleFromCache,
+  toToggleView,
+  upsertToggleCache,
+  validateTogglePayload
+} from "./use-admin-data.helpers";
 
 export const useAdminData = ({
   token,
+  selectedToggleId,
   newGroupName,
   newGroupDescription,
   setNewGroupName,
@@ -33,7 +41,7 @@ export const useAdminData = ({
     queryFn: async () => {
       const response = await authFetch("/admin/groups", token);
       if (!response.ok) {
-        throw new Error("Не удалось загрузить группы");
+        throw new Error("Failed to load groups");
       }
       return (await response.json()) as GroupsQuery;
     }
@@ -45,9 +53,38 @@ export const useAdminData = ({
     queryFn: async () => {
       const response = await authFetch("/admin/feature-toggles", token);
       if (!response.ok) {
-        throw new Error("Не удалось загрузить фича-тогглы");
+        throw new Error("Failed to load feature toggles");
       }
       return (await response.json()) as TogglesQuery;
+    }
+  });
+
+  const selectedToggle =
+    (togglesQuery.data?.experiments ?? []).find(
+      (toggle) => toggle.id === selectedToggleId
+    ) ?? null;
+  const selectedToggleKey = selectedToggle?.key ?? "";
+  const selectedToggleAppId = selectedToggle?.appId ?? "";
+
+  const analyticsQuery = useQuery({
+    queryKey: [
+      "feature-toggle-analytics",
+      token,
+      selectedToggleAppId,
+      selectedToggleKey
+    ],
+    enabled: Boolean(token && selectedToggleKey && selectedToggleAppId),
+    queryFn: async () => {
+      const response = await authFetch(
+        `/admin/analytics/feature-toggles/${encodeURIComponent(
+          selectedToggleKey
+        )}?appId=${encodeURIComponent(selectedToggleAppId)}`,
+        token
+      );
+      if (!response.ok) {
+        throw new Error("Failed to load analytics");
+      }
+      return (await response.json()) as ToggleAnalyticsView;
     }
   });
 
@@ -264,37 +301,11 @@ export const useAdminData = ({
   const saveToggleMutation = useMutation({
     mutationFn: async () => {
       const groups = groupsQuery.data?.groups ?? [];
-      const linkedMembers = groups
-        .filter((group) => toggleForm.groupNames.includes(group.name))
-        .flatMap((group) => group.members.map((member) => member.memberKey));
-      const includeIds = [...linkedMembers, ...parseCsv(toggleForm.includeIdsRaw)];
-
-      const payload = {
-        appId: toggleForm.appId,
-        key: toggleForm.key,
-        name: toggleForm.name,
-        featureKey: toggleForm.featureKey,
-        featureEnabled: toggleForm.featureEnabled,
-        status: "active",
-        trafficPercent: 100,
-        segmentRules: {
-          includeGroups: toggleForm.groupNames,
-          includeAnonymousIds: includeIds,
-          rolloutPercent: Number(toggleForm.rolloutPercent)
-        },
-        variants: [
-          {
-            key: "A",
-            weightPercent: 50,
-            payload: { buttonColor: "#0ea5e9", headline: "Базовый" }
-          },
-          {
-            key: "B",
-            weightPercent: 50,
-            payload: { buttonColor: "#22c55e", headline: "Новый" }
-          }
-        ]
-      };
+      const { payload } = buildTogglePayload(toggleForm, groups);
+      const validationError = validateTogglePayload(payload);
+      if (validationError) {
+        throw new Error(validationError);
+      }
 
       if (toggleForm.id) {
         const response = await authFetch(
@@ -308,7 +319,7 @@ export const useAdminData = ({
         if (!response.ok) {
           throw new Error(await response.text());
         }
-        return { id: toggleForm.id, mode: "update" as const };
+        return { id: toggleForm.id, mode: "update" as const, payload };
       }
 
       const response = await authFetch("/admin/feature-toggles", token, {
@@ -319,36 +330,11 @@ export const useAdminData = ({
         throw new Error(await response.text());
       }
       const data = (await response.json()) as { id: string };
-      return { id: data.id, mode: "create" as const };
+      return { id: data.id, mode: "create" as const, payload };
     },
-    onSuccess: ({ id, mode }) => {
-      const nextToggle: ToggleView = {
-        id,
-        appId: toggleForm.appId,
-        key: toggleForm.key,
-        name: toggleForm.name,
-        featureKey: toggleForm.featureKey,
-        featureEnabled: toggleForm.featureEnabled,
-        segmentRules: {
-          includeGroups: toggleForm.groupNames,
-          includeAnonymousIds: parseCsv(toggleForm.includeIdsRaw),
-          rolloutPercent: Number(toggleForm.rolloutPercent)
-        },
-        status: "active",
-        trafficPercent: 100,
-        variants: [
-          { key: "A", weightPercent: 50 },
-          { key: "B", weightPercent: 50 }
-        ]
-      };
-
-      updateTogglesCache((toggles) => {
-        if (mode === "create") {
-          return [nextToggle, ...toggles];
-        }
-        return toggles.map((toggle) => (toggle.id === id ? nextToggle : toggle));
-      });
-
+    onSuccess: ({ id, mode, payload }) => {
+      const nextToggle = toToggleView(id, payload);
+      updateTogglesCache((toggles) => upsertToggleCache(toggles, nextToggle, mode));
       setToggleDrawerOpen(false);
     }
   });
@@ -364,9 +350,7 @@ export const useAdminData = ({
       return toggleId;
     },
     onSuccess: (toggleId) => {
-      updateTogglesCache((toggles) =>
-        toggles.filter((toggle) => toggle.id !== toggleId)
-      );
+      updateTogglesCache((toggles) => removeToggleFromCache(toggles, toggleId));
     }
   });
 
@@ -385,6 +369,9 @@ export const useAdminData = ({
   const saveError = saveToggleMutation.isError
     ? (saveToggleMutation.error as Error).message
     : "";
+  const analyticsError = analyticsQuery.isError
+    ? (analyticsQuery.error as Error).message
+    : "";
   const memberInputForDrawer = editingGroup
     ? memberInputs[editingGroup.id] ?? ""
     : "";
@@ -392,8 +379,10 @@ export const useAdminData = ({
   return {
     groups,
     toggles,
+    selectedToggle,
     groupsQuery,
     togglesQuery,
+    analyticsQuery,
     createGroupMutation,
     updateGroupMutation,
     deleteGroupMutation,
@@ -403,6 +392,7 @@ export const useAdminData = ({
     deleteToggleMutation,
     isBusy,
     saveError,
+    analyticsError,
     memberInputForDrawer
   };
 };

@@ -12,3 +12,6 @@ apps/demo-app
 docs-defense-checklist.md
 apps/admin/playwright-report
 apps/admin/test-results
+docs/plan.md
+docs/fixes.md
+_local_notes/

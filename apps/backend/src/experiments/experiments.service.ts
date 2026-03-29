@@ -164,6 +164,10 @@ export class ExperimentsService {
   }
 
   private validateWeights(dto: UpsertExperimentDto): void {
+    if (!dto.variants.length) {
+      return;
+    }
+
     const sum = dto.variants.reduce((acc, item) => acc + item.weightPercent, 0);
     if (sum !== 100) {
       throw new BadRequestException("Variant weightPercent sum must be 100");
