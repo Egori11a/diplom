@@ -104,6 +104,13 @@ describe("use-admin-data helpers", () => {
         appId: ""
       })
     ).toContain("Fill appId");
+
+    expect(
+      validateTogglePayload({
+        ...payload,
+        variants: []
+      })
+    ).toBeNull();
   });
 
   it("updates local cache after create/update/delete", () => {

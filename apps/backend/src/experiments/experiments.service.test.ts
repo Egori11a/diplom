@@ -63,6 +63,21 @@ describe("ExperimentsService", () => {
     expect(db.pg.query).toHaveBeenCalledTimes(3);
   });
 
+  it("creates feature-toggle without variants", async () => {
+    const { service, db } = makeService();
+    db.pg.query.mockResolvedValueOnce({ rows: [{ id: "exp-2" }] });
+
+    const result = await service.create({
+      ...validDto,
+      key: "simple-flag",
+      featureKey: "simple-flag",
+      variants: []
+    });
+
+    expect(result).toEqual({ id: "exp-2" });
+    expect(db.pg.query).toHaveBeenCalledTimes(1);
+  });
+
   it("returns active experiments with mapped variants", async () => {
     const { service, db } = makeService();
     db.pg.query

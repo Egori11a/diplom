@@ -117,7 +117,7 @@ export const validateTogglePayload = (payload: TogglePayload): string | null => 
   }
 
   if (!payload.variants.length) {
-    return "Add at least one variant";
+    return null;
   }
 
   const variantKeys = payload.variants.map((item) => item.key);

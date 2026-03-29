@@ -15,6 +15,7 @@ describe("Backend E2E", () => {
   const rolloutZeroKey = `e2e-rollout-zero-${suffix}`;
   const rolloutHundredKey = `e2e-rollout-hundred-${suffix}`;
   const trafficZeroKey = `e2e-traffic-zero-${suffix}`;
+  const simpleToggleKey = `e2e-simple-toggle-${suffix}`;
   const targetAnonymousId = `target-anon-${suffix}`;
   const targetGroup = `qa-canary-${suffix}`;
   let groupId = "";
@@ -232,6 +233,36 @@ describe("Backend E2E", () => {
       },
       0
     );
+    await createToggle(
+      simpleToggleKey,
+      {
+        includeGroups: [],
+        includeAnonymousIds: [],
+        rolloutPercent: 100
+      },
+      100
+    );
+
+    const createSimpleNoVariants = await api
+      .post("/admin/feature-toggles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        appId: "demo-app",
+        key: `${simpleToggleKey}-no-variants`,
+        name: `${simpleToggleKey}-no-variants`,
+        featureKey: `${simpleToggleKey}-no-variants`,
+        featureEnabled: true,
+        status: "active",
+        trafficPercent: 100,
+        segmentRules: {
+          includeGroups: [],
+          includeAnonymousIds: [],
+          rolloutPercent: 100
+        },
+        variants: []
+      });
+    expect(createSimpleNoVariants.status).toBe(201);
+    experimentIds.push(createSimpleNoVariants.body.id);
 
     const sdkResponse = await api.get(
       `/sdk/experiments/active?appId=${encodeURIComponent("demo-app")}`
@@ -246,12 +277,14 @@ describe("Backend E2E", () => {
     const rolloutZeroExperiment = byKey.get(rolloutZeroKey);
     const rolloutHundredExperiment = byKey.get(rolloutHundredKey);
     const trafficZeroExperiment = byKey.get(trafficZeroKey);
+    const simpleNoVariantsExperiment = byKey.get(`${simpleToggleKey}-no-variants`);
 
     expect(includeByIdExperiment).toBeDefined();
     expect(includeByGroupExperiment).toBeDefined();
     expect(rolloutZeroExperiment).toBeDefined();
     expect(rolloutHundredExperiment).toBeDefined();
     expect(trafficZeroExperiment).toBeDefined();
+    expect(simpleNoVariantsExperiment).toBeDefined();
 
     expect(
       isExperimentEnabled(targetAnonymousId, [], includeByIdExperiment!)
@@ -279,6 +312,7 @@ describe("Backend E2E", () => {
     ).toBe(true);
 
     expect(resolveVariant(`other-${suffix}`, trafficZeroExperiment!)).toBe("control");
+    expect(resolveVariant(`other-${suffix}`, simpleNoVariantsExperiment!)).toBe("on");
   });
 
   it("events: accepts batch ingestion", async () => {

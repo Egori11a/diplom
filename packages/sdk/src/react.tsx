@@ -9,7 +9,12 @@ import {
 } from "react";
 import { ExperimentClient } from "./client";
 import { EventBuffer } from "./events";
-import { getAnonymousId, isExperimentEnabled, resolveVariant } from "./assignment";
+import {
+  getAnonymousId,
+  isExperimentEnabled,
+  isInTraffic,
+  resolveVariant
+} from "./assignment";
 import type {
   ABHookResult,
   ABProviderConfig,
@@ -78,11 +83,17 @@ export const ABProvider = ({
           return false;
         }
 
-        return isExperimentEnabled(
+        const eligible = isExperimentEnabled(
           anonymousId,
           config.userGroups ?? [],
           experiment
         );
+
+        if (!eligible) {
+          return false;
+        }
+
+        return isInTraffic(anonymousId, experiment);
       }
     }),
     [anonymousId, config.userGroups, experiments]

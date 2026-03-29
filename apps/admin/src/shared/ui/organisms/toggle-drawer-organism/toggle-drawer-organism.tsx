@@ -32,7 +32,7 @@ export const ToggleDrawerOrganism = ({
   };
 
   const removeVariant = (index: number): void => {
-    if (form.variants.length <= 1) {
+    if (!form.variants.length) {
       return;
     }
     onFormChange({
@@ -42,15 +42,20 @@ export const ToggleDrawerOrganism = ({
 
   const addVariant = (): void => {
     const nextIndex = form.variants.length + 1;
+    const defaultWeight = form.variants.length === 0 ? 100 : 0;
     onFormChange({
       variants: [
         ...form.variants,
         {
           key: `V${nextIndex}`,
-          weightPercent: 0
+          weightPercent: defaultWeight
         }
       ]
     });
+  };
+
+  const clearVariants = (): void => {
+    onFormChange({ variants: [] });
   };
 
   return (
@@ -157,8 +162,13 @@ export const ToggleDrawerOrganism = ({
         />
       </FieldMolecule>
 
-      <FieldMolecule label="Variants (flexible weights)">
+      <FieldMolecule label="Variants (optional, flexible weights)">
         <div className="toggle-drawer-organism__variants">
+          {form.variants.length > 0 ? (
+            <ButtonAtom variant="secondary" type="button" onClick={clearVariants}>
+              Remove all variants
+            </ButtonAtom>
+          ) : null}
           {form.variants.map((variant, index) => (
             <div className="toggle-drawer-organism__variant-row" key={`${variant.key}-${index}`}>
               <InputAtom
@@ -184,7 +194,6 @@ export const ToggleDrawerOrganism = ({
                 variant="secondary"
                 type="button"
                 onClick={() => removeVariant(index)}
-                disabled={form.variants.length <= 1}
               >
                 Remove
               </ButtonAtom>

@@ -41,6 +41,16 @@ const inRollout = (seed: string, percent: number): boolean => {
   return fnv1a(seed) % 100 < percent;
 };
 
+export const isInTraffic = (
+  anonymousId: string,
+  experiment: ActiveExperiment
+): boolean => {
+  return inRollout(
+    `${experiment.key}:${anonymousId}:traffic`,
+    experiment.trafficPercent
+  );
+};
+
 export const isExperimentEnabled = (
   anonymousId: string,
   userGroups: string[],
@@ -74,9 +84,12 @@ export const resolveVariant = (
   anonymousId: string,
   experiment: ActiveExperiment
 ): string => {
-  const trafficBucket = fnv1a(`${experiment.key}:${anonymousId}`) % 100;
-  if (trafficBucket >= experiment.trafficPercent) {
+  if (!isInTraffic(anonymousId, experiment)) {
     return "control";
+  }
+
+  if (!experiment.variants.length) {
+    return "on";
   }
 
   const variantBucket = fnv1a(`${anonymousId}:${experiment.key}:variants`) % 100;
