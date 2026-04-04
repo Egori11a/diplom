@@ -5,6 +5,7 @@ import type { ToggleForm } from "../types";
 import {
   buildIncludeAnonymousIds,
   buildTogglePayload,
+  deriveAdditionalAnonymousIdsForEdit,
   removeToggleFromCache,
   toToggleView,
   upsertToggleCache,
@@ -28,10 +29,16 @@ const sampleForm: ToggleForm = {
 };
 
 describe("use-admin-data helpers", () => {
-  it("parseCsv + merge include ids: trims, filters empty and deduplicates with group members", () => {
+  it("parseCsv include ids: trims, filters empty and deduplicates", () => {
     expect(parseCsv(" a, b ,, c ")).toEqual(["a", "b", "c"]);
 
-    const includeIds = buildIncludeAnonymousIds(
+    const includeIds = buildIncludeAnonymousIds("user:maria,user:manual,user:maria");
+
+    expect(includeIds).toEqual(["user:maria", "user:manual"]);
+  });
+
+  it("derives Additional anonymous ids by excluding members from selected groups", () => {
+    const additionalIds = deriveAdditionalAnonymousIdsForEdit(
       [
         {
           id: "g1",
@@ -41,27 +48,16 @@ describe("use-admin-data helpers", () => {
         }
       ],
       ["beta-team"],
-      "user:maria,user:manual"
+      ["user:egor", "user:maria", "user:manual"]
     );
 
-    expect(includeIds).toEqual(["user:egor", "user:maria", "user:manual"]);
+    expect(additionalIds).toEqual(["user:manual"]);
   });
 
   it("builds payload from toggle form with trafficPercent and flexible variants", () => {
-    const { payload, includeAnonymousIds } = buildTogglePayload(sampleForm, [
-      {
-        id: "g1",
-        name: "beta-team",
-        description: "",
-        members: [{ memberKey: "user:egor" }]
-      }
-    ]);
+    const { payload, includeAnonymousIds } = buildTogglePayload(sampleForm);
 
-    expect(includeAnonymousIds).toEqual([
-      "user:egor",
-      "user:manual",
-      "user:manual-2"
-    ]);
+    expect(includeAnonymousIds).toEqual(["user:manual", "user:manual-2"]);
     expect(payload.trafficPercent).toBe(70);
     expect(payload.segmentRules.rolloutPercent).toBe(25);
     expect(payload.variants).toEqual([
@@ -71,7 +67,7 @@ describe("use-admin-data helpers", () => {
   });
 
   it("validates payload fields, range checks and variant weights", () => {
-    const { payload } = buildTogglePayload(sampleForm, []);
+    const { payload } = buildTogglePayload(sampleForm);
     expect(validateTogglePayload(payload)).toBeNull();
     expect(
       validateTogglePayload({
@@ -114,7 +110,7 @@ describe("use-admin-data helpers", () => {
   });
 
   it("updates local cache after create/update/delete", () => {
-    const { payload } = buildTogglePayload(sampleForm, []);
+    const { payload } = buildTogglePayload(sampleForm);
     const initial: ToggleView[] = [];
     const createdToggle = toToggleView("t-1", payload);
 

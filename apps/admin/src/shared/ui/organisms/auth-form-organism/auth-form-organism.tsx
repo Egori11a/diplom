@@ -1,5 +1,6 @@
 ﻿import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
+import { adminUiText } from "../../../config";
 import type { AuthFormOrganismProps } from "./types";
 import "./auth-form-organism.css";
 
@@ -13,12 +14,12 @@ export const AuthFormOrganism = ({
 }: AuthFormOrganismProps) => {
   return (
     <CardAtom className="auth-form-organism">
-      <h2>Вход администратора</h2>
+      <h2>{adminUiText.auth.heading}</h2>
       <div className="auth-form-organism__grid">
-        <FieldMolecule label="Почта">
+        <FieldMolecule label={adminUiText.auth.emailLabel}>
           <InputAtom value={email} onChange={(event) => onEmailChange(event.target.value)} />
         </FieldMolecule>
-        <FieldMolecule label="Пароль">
+        <FieldMolecule label={adminUiText.auth.passwordLabel}>
           <InputAtom
             type="password"
             value={password}
@@ -28,7 +29,7 @@ export const AuthFormOrganism = ({
       </div>
       <div className="auth-form-organism__actions">
         <ButtonAtom type="button" onClick={onLogin}>
-          Войти
+          {adminUiText.auth.loginButton}
         </ButtonAtom>
         {loginError && <TagAtom variant="error">{loginError}</TagAtom>}
       </div>

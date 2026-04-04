@@ -192,16 +192,34 @@ export const useAdminData = ({
   });
 
   const deleteGroupMutation = useMutation({
-    mutationFn: async (groupId: string) => {
+    mutationFn: async ({
+      groupId,
+      groupName
+    }: {
+      groupId: string;
+      groupName: string;
+    }) => {
       const response = await authFetch(`/admin/groups/${groupId}`, token, {
         method: "DELETE"
       });
       if (!response.ok) {
         throw new Error(await response.text());
       }
+      return { groupId, groupName };
     },
-    onSuccess: (_result, groupId) => {
+    onSuccess: ({ groupId, groupName }) => {
       updateGroupsCache((groups) => groups.filter((group) => group.id !== groupId));
+      updateTogglesCache((toggles) =>
+        toggles.map((toggle) => ({
+          ...toggle,
+          segmentRules: {
+            ...toggle.segmentRules,
+            includeGroups: (toggle.segmentRules?.includeGroups ?? []).filter(
+              (name) => name !== groupName
+            )
+          }
+        }))
+      );
       setPendingDeleteGroup(null);
     }
   });
@@ -300,8 +318,7 @@ export const useAdminData = ({
 
   const saveToggleMutation = useMutation({
     mutationFn: async () => {
-      const groups = groupsQuery.data?.groups ?? [];
-      const { payload } = buildTogglePayload(toggleForm, groups);
+      const { payload } = buildTogglePayload(toggleForm);
       const validationError = validateTogglePayload(payload);
       if (validationError) {
         throw new Error(validationError);

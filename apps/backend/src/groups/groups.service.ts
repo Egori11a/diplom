@@ -117,7 +117,49 @@ export class GroupsService {
   }
 
   async remove(id: string): Promise<{ ok: true }> {
+    const found = await this.db.pg.query<{ name: string }>(
+      "SELECT name FROM groups WHERE id = $1",
+      [id]
+    );
+    const groupName = found.rows[0]?.name;
+
     await this.db.pg.query("DELETE FROM groups WHERE id = $1", [id]);
+
+    if (groupName) {
+      const affectedExperiments = await this.db.pg.query<{
+        id: string;
+        segment_rules: { includeGroups?: string[] };
+      }>(
+        `
+        SELECT id, segment_rules
+        FROM experiments
+        WHERE segment_rules->'includeGroups' ? $1
+        `,
+        [groupName]
+      );
+
+      for (const experiment of affectedExperiments.rows) {
+        const includeGroups = experiment.segment_rules?.includeGroups ?? [];
+        const updatedIncludeGroups = includeGroups.filter(
+          (name) => name !== groupName
+        );
+        await this.db.pg.query(
+          `
+          UPDATE experiments
+          SET segment_rules = jsonb_set(
+            COALESCE(segment_rules, '{}'::jsonb),
+            '{includeGroups}',
+            $1::jsonb,
+            true
+          ),
+          updated_at = NOW()
+          WHERE id = $2
+          `,
+          [JSON.stringify(updatedIncludeGroups), experiment.id]
+        );
+      }
+    }
+
     return { ok: true };
   }
 

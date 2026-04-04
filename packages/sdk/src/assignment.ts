@@ -2,6 +2,11 @@ import type { ActiveExperiment } from "./types";
 
 const STORAGE_KEY = "ab_anonymous_id";
 
+export interface AssignmentResult {
+  enabled: boolean;
+  variant: string;
+}
+
 export const getAnonymousId = (): string => {
   if (typeof window === "undefined") {
     return "server-anonymous";
@@ -102,4 +107,24 @@ export const resolveVariant = (
   }
 
   return experiment.variants[0]?.key ?? "control";
+};
+
+export const resolveAssignment = (
+  anonymousId: string,
+  userGroups: string[],
+  experiment: ActiveExperiment
+): AssignmentResult => {
+  const eligible = isExperimentEnabled(anonymousId, userGroups, experiment);
+  if (!eligible) {
+    return { enabled: false, variant: "control" };
+  }
+
+  if (!isInTraffic(anonymousId, experiment)) {
+    return { enabled: false, variant: "control" };
+  }
+
+  return {
+    enabled: true,
+    variant: resolveVariant(anonymousId, experiment)
+  };
 };

@@ -3,8 +3,10 @@ export {
   resolveVariant,
   getAnonymousId,
   isExperimentEnabled,
-  isInTraffic
+  isInTraffic,
+  resolveAssignment
 } from "./assignment";
+export type { AssignmentResult } from "./assignment";
 export type {
   ABProviderConfig,
   ABHookResult,

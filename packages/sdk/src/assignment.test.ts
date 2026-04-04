@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isExperimentEnabled, isInTraffic, resolveVariant } from "./assignment";
+import {
+  isExperimentEnabled,
+  isInTraffic,
+  resolveAssignment,
+  resolveVariant
+} from "./assignment";
 import type { ActiveExperiment } from "./types";
 
 const baseExperiment: ActiveExperiment = {
@@ -90,5 +95,32 @@ describe("isInTraffic", () => {
     expect(
       isInTraffic("user-1", { ...baseExperiment, trafficPercent: 100 })
     ).toBe(true);
+  });
+});
+
+describe("resolveAssignment", () => {
+  it("returns disabled control when experiment is not eligible", () => {
+    const result = resolveAssignment("user-1", [], {
+      ...baseExperiment,
+      segmentRules: { rolloutPercent: 0 }
+    });
+
+    expect(result).toEqual({ enabled: false, variant: "control" });
+  });
+
+  it("returns disabled control when user is out of traffic", () => {
+    const result = resolveAssignment("user-1", [], {
+      ...baseExperiment,
+      trafficPercent: 0
+    });
+
+    expect(result).toEqual({ enabled: false, variant: "control" });
+  });
+
+  it("returns enabled variant when user is eligible and in traffic", () => {
+    const result = resolveAssignment("user-1", [], baseExperiment);
+
+    expect(result.enabled).toBe(true);
+    expect(["A", "B"]).toContain(result.variant);
   });
 });

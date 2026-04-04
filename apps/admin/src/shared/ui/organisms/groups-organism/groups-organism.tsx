@@ -1,5 +1,6 @@
 ﻿import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
+import { adminUiText } from "../../../config";
 import type { GroupsOrganismProps } from "./types";
 import "./groups-organism.css";
 
@@ -19,7 +20,7 @@ export const GroupsOrganism = ({
   return (
     <CardAtom>
       <div className="groups-organism__header">
-        <h2>Группы команд</h2>
+        <h2>{adminUiText.groups.heading}</h2>
         <InputAtom
           className="groups-organism__search"
           placeholder="Поиск группы по названию"
@@ -29,10 +30,10 @@ export const GroupsOrganism = ({
       </div>
 
       <div className="groups-organism__create-grid">
-        <FieldMolecule label="Название группы">
+        <FieldMolecule label={adminUiText.groups.nameLabel}>
           <InputAtom value={newGroupName} onChange={(event) => onNewGroupNameChange(event.target.value)} />
         </FieldMolecule>
-        <FieldMolecule label="Описание">
+        <FieldMolecule label={adminUiText.groups.descriptionLabel}>
           <InputAtom
             value={newGroupDescription}
             onChange={(event) => onNewGroupDescriptionChange(event.target.value)}
@@ -41,7 +42,7 @@ export const GroupsOrganism = ({
       </div>
 
       <ButtonAtom type="button" onClick={onCreateGroup} disabled={isBusy || !newGroupName.trim()}>
-        Создать группу
+        {adminUiText.groups.createButton}
       </ButtonAtom>
 
       <div className="groups-organism__list">

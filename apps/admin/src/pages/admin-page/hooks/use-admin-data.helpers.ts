@@ -46,26 +46,30 @@ const normalizeVariant = (
 };
 
 export const buildIncludeAnonymousIds = (
-  groups: GroupView[],
-  groupNames: string[],
   includeIdsRaw: string
 ): string[] => {
-  const linkedMembers = groups
-    .filter((group) => groupNames.includes(group.name))
-    .flatMap((group) => group.members.map((member) => member.memberKey));
-  return toUniqueStrings([...linkedMembers, ...parseCsv(includeIdsRaw)]);
+  return toUniqueStrings(parseCsv(includeIdsRaw));
+};
+
+export const deriveAdditionalAnonymousIdsForEdit = (
+  groups: GroupView[],
+  groupNames: string[],
+  includeAnonymousIds: string[]
+): string[] => {
+  const groupMembers = new Set(
+    groups
+      .filter((group) => groupNames.includes(group.name))
+      .flatMap((group) => group.members.map((member) => member.memberKey))
+  );
+
+  return includeAnonymousIds.filter((id) => !groupMembers.has(id));
 };
 
 export const buildTogglePayload = (
-  form: ToggleForm,
-  groups: GroupView[]
+  form: ToggleForm
 ): BuiltTogglePayload => {
   const includeGroups = toUniqueStrings(form.groupNames);
-  const includeAnonymousIds = buildIncludeAnonymousIds(
-    groups,
-    includeGroups,
-    form.includeIdsRaw
-  );
+  const includeAnonymousIds = buildIncludeAnonymousIds(form.includeIdsRaw);
   const variants = form.variants
     .map(normalizeVariant)
     .filter((item): item is ToggleFormVariant => Boolean(item))

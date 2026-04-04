@@ -1,5 +1,6 @@
-import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
+﻿import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
+import { adminUiText } from "../../../config";
 import type { ToggleFormVariant } from "../../../../pages/admin-page/types";
 import type { ToggleDrawerOrganismProps } from "./types";
 import "./toggle-drawer-organism.css";
@@ -61,9 +62,9 @@ export const ToggleDrawerOrganism = ({
   return (
     <DrawerAtom>
       <div className="toggle-drawer-organism__header">
-        <h2>{form.id ? "Edit toggle" : "Create toggle"}</h2>
+        <h2>{form.id ? adminUiText.toggleDrawer.editHeading : adminUiText.toggleDrawer.createHeading}</h2>
         <ButtonAtom variant="secondary" type="button" onClick={onClose}>
-          Close
+          {adminUiText.toggleDrawer.closeButton}
         </ButtonAtom>
       </div>
 

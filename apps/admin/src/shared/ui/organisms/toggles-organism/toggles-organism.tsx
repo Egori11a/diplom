@@ -1,4 +1,5 @@
-import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
+﻿import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
+import { adminUiText } from "../../../config";
 import type { TogglesOrganismProps } from "./types";
 import "./toggles-organism.css";
 
@@ -16,7 +17,7 @@ export const TogglesOrganism = ({
   return (
     <CardAtom>
       <div className="toggles-organism__header">
-        <h2>Feature toggles</h2>
+        <h2>{adminUiText.toggles.heading}</h2>
         <div className="toggles-organism__header-actions">
           <InputAtom
             className="toggles-organism__search"
@@ -25,7 +26,7 @@ export const TogglesOrganism = ({
             onChange={(event) => onSearchQueryChange(event.target.value)}
           />
           <ButtonAtom type="button" onClick={onCreateToggle} disabled={isBusy}>
-            Create toggle
+            {adminUiText.toggles.createButton}
           </ButtonAtom>
         </div>
       </div>
