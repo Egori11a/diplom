@@ -1,9 +1,9 @@
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type PropsWithChildren
 } from "react";
@@ -22,6 +22,8 @@ import type {
 } from "./types";
 
 const DEFAULT_CACHE_TTL_MS = 30_000;
+const CONTROL_VARIANT = "control";
+const EMPTY_GROUPS: string[] = [];
 
 interface ABContextValue {
   experiments: ActiveExperiment[];
@@ -36,20 +38,26 @@ export const ABProvider = ({
   config
 }: PropsWithChildren<{ config: ABProviderConfig }>) => {
   const [experiments, setExperiments] = useState<ActiveExperiment[]>([]);
-  const subjectKey = useMemo(
-    () => config.subjectKey?.trim() || getSubjectKey(),
-    [config.subjectKey]
-  );
+  const subjectKey = useMemo(() => config.subjectKey?.trim() || getSubjectKey(), [config.subjectKey]);
+  const userGroups = config.userGroups ?? EMPTY_GROUPS;
   const cacheTtlMs = config.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
-  const clientRef = useRef(
-    new ExperimentClient(config.apiUrl, cacheTtlMs)
+  const client = useMemo(
+    () => new ExperimentClient(config.apiUrl, cacheTtlMs),
+    [config.apiUrl, cacheTtlMs]
   );
-  const bufferRef = useRef(new EventBuffer(config, subjectKey));
+  const eventBuffer = useMemo(
+    () => new EventBuffer(config, subjectKey),
+    [config.apiUrl, config.appId, config.flushIntervalMs, config.batchSize, subjectKey]
+  );
 
   useEffect(() => {
-    bufferRef.current.start();
+    let isUnmounted = false;
+
     const load = async () => {
-      const current = await clientRef.current.getActiveExperiments(config.appId);
+      const current = await client.getActiveExperiments(config.appId);
+      if (isUnmounted) {
+        return;
+      }
       setExperiments(current);
     };
 
@@ -59,28 +67,46 @@ export const ABProvider = ({
     }, cacheTtlMs);
 
     return () => {
+      isUnmounted = true;
       clearInterval(timer);
-      bufferRef.current.stop();
-      void bufferRef.current.flush();
     };
-  }, [cacheTtlMs, config.appId]);
+  }, [cacheTtlMs, client, config.appId]);
+
+  useEffect(() => {
+    eventBuffer.start();
+
+    return () => {
+      eventBuffer.stop();
+      void eventBuffer.flush();
+    };
+  }, [eventBuffer]);
+
+  const track = useCallback(
+    (event: TrackEventInput) => {
+      eventBuffer.track(event);
+    },
+    [eventBuffer]
+  );
+
+  const getAssignment = useCallback(
+    (experimentKey: string): AssignmentResult => {
+      const experiment = experiments.find((item: ActiveExperiment) => item.key === experimentKey);
+      if (!experiment) {
+        return { enabled: false, variant: CONTROL_VARIANT };
+      }
+
+      return resolveAssignment(subjectKey, userGroups, experiment);
+    },
+    [experiments, subjectKey, userGroups]
+  );
 
   const value = useMemo<ABContextValue>(
     () => ({
       experiments,
-      track: (event: TrackEventInput) => bufferRef.current.track(event),
-      getAssignment: (experimentKey: string) => {
-        const experiment = experiments.find(
-          (item: ActiveExperiment) => item.key === experimentKey
-        );
-        if (!experiment) {
-          return { enabled: false, variant: "control" };
-        }
-
-        return resolveAssignment(subjectKey, config.userGroups ?? [], experiment);
-      }
+      track,
+      getAssignment
     }),
-    [subjectKey, config.userGroups, experiments]
+    [experiments, track, getAssignment]
   );
 
   return <ABContext.Provider value={value}>{children}</ABContext.Provider>;
@@ -103,10 +129,10 @@ export const useAB = (experimentKey: string): ABHookResult => {
       experiment_key: experimentKey,
       variant_key: variant
     });
-  }, [context, enabled, experimentKey, variant]);
+  }, [context.track, enabled, experimentKey, variant]);
 
   return {
-    variant: enabled ? variant : "control",
+    variant: enabled ? variant : CONTROL_VARIANT,
     enabled,
     track: (eventType, meta) => {
       if (!enabled) {

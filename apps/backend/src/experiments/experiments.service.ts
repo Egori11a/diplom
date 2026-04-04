@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -30,11 +30,61 @@ interface ActiveExperimentRow {
   trafficPercent: number;
 }
 
+interface ListVariantRow {
+  id: string;
+  key: string;
+  weightPercent: number;
+  payload: Record<string, unknown>;
+}
+
+interface ActiveVariantRow {
+  key: string;
+  weightPercent: number;
+}
+
+interface ExperimentListView {
+  id: string;
+  appId: string;
+  key: string;
+  name: string;
+  featureKey: string;
+  featureEnabled: boolean;
+  segmentRules: Record<string, unknown>;
+  status: string;
+  trafficPercent: number;
+  startAt?: string | null;
+  endAt?: string | null;
+  variants: ListVariantRow[];
+}
+
+interface ActiveExperimentView {
+  key: string;
+  featureKey: string;
+  featureEnabled: boolean;
+  segmentRules: Record<string, unknown>;
+  trafficPercent: number;
+  variants: ActiveVariantRow[];
+}
+
+interface PgErrorWithCode {
+  code?: string;
+}
+
+const UNIQUE_VIOLATION_CODE = "23505";
+
+const isUniqueViolation = (error: unknown): error is PgErrorWithCode => {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  return (error as PgErrorWithCode).code === UNIQUE_VIOLATION_CODE;
+};
+
 @Injectable()
 export class ExperimentsService {
   constructor(private readonly db: DbService) {}
 
-  async list(appId?: string): Promise<{ experiments: unknown[] }> {
+  async list(appId?: string): Promise<{ experiments: ExperimentListView[] }> {
     const experimentsQuery = appId
       ? {
           query: "SELECT * FROM experiments WHERE app_id = $1 ORDER BY created_at DESC",
@@ -57,7 +107,7 @@ export class ExperimentsService {
     return { experiments };
   }
 
-  async active(appId: string): Promise<{ experiments: unknown[] }> {
+  async active(appId: string): Promise<{ experiments: ActiveExperimentView[] }> {
     const result = await this.db.pg.query<ActiveExperimentRow>(
       `SELECT id, key, feature_key AS "featureKey", feature_enabled AS "featureEnabled",
               segment_rules AS "segmentRules", traffic_percent AS "trafficPercent"
@@ -87,8 +137,8 @@ export class ExperimentsService {
         `,
         this.buildWriteParams(dto)
       );
-    } catch (error: any) {
-      if (error?.code === "23505") {
+    } catch (error: unknown) {
+      if (isUniqueViolation(error)) {
         throw new ConflictException(
           `Experiment with key "${dto.key}" already exists for app "${dto.appId}"`
         );
@@ -128,7 +178,7 @@ export class ExperimentsService {
     return { ok: true };
   }
 
-  private async mapListExperiment(row: ExperimentRow): Promise<unknown> {
+  private async mapListExperiment(row: ExperimentRow): Promise<ExperimentListView> {
     const variants = await this.fetchListVariants(row.id);
 
     return {
@@ -147,7 +197,9 @@ export class ExperimentsService {
     };
   }
 
-  private async mapActiveExperiment(row: ActiveExperimentRow): Promise<unknown> {
+  private async mapActiveExperiment(
+    row: ActiveExperimentRow
+  ): Promise<ActiveExperimentView> {
     const variants = await this.fetchActiveVariants(row.id);
 
     return {
@@ -160,16 +212,16 @@ export class ExperimentsService {
     };
   }
 
-  private async fetchListVariants(experimentId: string): Promise<unknown[]> {
-    const result = await this.db.pg.query(
+  private async fetchListVariants(experimentId: string): Promise<ListVariantRow[]> {
+    const result = await this.db.pg.query<ListVariantRow>(
       "SELECT id, key, weight_percent AS \"weightPercent\", payload FROM variants WHERE experiment_id = $1 ORDER BY key",
       [experimentId]
     );
     return result.rows;
   }
 
-  private async fetchActiveVariants(experimentId: string): Promise<unknown[]> {
-    const result = await this.db.pg.query(
+  private async fetchActiveVariants(experimentId: string): Promise<ActiveVariantRow[]> {
+    const result = await this.db.pg.query<ActiveVariantRow>(
       "SELECT key, weight_percent AS \"weightPercent\" FROM variants WHERE experiment_id = $1 ORDER BY key",
       [experimentId]
     );

@@ -1,15 +1,24 @@
 import type { ActiveExperiment } from "./types";
 
 const STORAGE_KEY = "ab_subject_key";
+const SERVER_SUBJECT_KEY = "server-subject";
+const CONTROL_VARIANT = "control";
+const ON_VARIANT = "on";
 
 export interface AssignmentResult {
   enabled: boolean;
   variant: string;
 }
 
+interface NormalizedSegmentRules {
+  includeSubjectKeys: string[];
+  includeGroups: string[];
+  rolloutPercent: number;
+}
+
 export const getSubjectKey = (): string => {
   if (typeof window === "undefined") {
-    return "server-subject";
+    return SERVER_SUBJECT_KEY;
   }
 
   const fromStorage = window.localStorage.getItem(STORAGE_KEY);
@@ -36,7 +45,7 @@ const fnv1a = (value: string): number => {
   return hash >>> 0;
 };
 
-const inRollout = (seed: string, percent: number): boolean => {
+const inPercentBucket = (seed: string, percent: number): boolean => {
   if (percent >= 100) {
     return true;
   }
@@ -46,8 +55,49 @@ const inRollout = (seed: string, percent: number): boolean => {
   return fnv1a(seed) % 100 < percent;
 };
 
+const getSegmentRules = (
+  experiment: ActiveExperiment
+): NormalizedSegmentRules => {
+  const rules = experiment.segmentRules ?? {};
+  return {
+    includeSubjectKeys: rules.includeSubjectKeys ?? [],
+    includeGroups: rules.includeGroups ?? [],
+    rolloutPercent: rules.rolloutPercent ?? 100
+  };
+};
+
+const hasGroupMatch = (includeGroups: string[], userGroups: string[]): boolean => {
+  if (!includeGroups.length || !userGroups.length) {
+    return false;
+  }
+
+  const userGroupsSet = new Set(userGroups);
+  return includeGroups.some((group) => userGroupsSet.has(group));
+};
+
+const resolveVariantInsideTraffic = (
+  subjectKey: string,
+  experiment: ActiveExperiment
+): string => {
+  if (!experiment.variants.length) {
+    return ON_VARIANT;
+  }
+
+  const variantBucket = fnv1a(`${subjectKey}:${experiment.key}:variants`) % 100;
+  let cumulative = 0;
+
+  for (const variant of experiment.variants) {
+    cumulative += variant.weightPercent;
+    if (variantBucket < cumulative) {
+      return variant.key;
+    }
+  }
+
+  return experiment.variants[0]?.key ?? CONTROL_VARIANT;
+};
+
 export const isInTraffic = (subjectKey: string, experiment: ActiveExperiment): boolean => {
-  return inRollout(
+  return inPercentBucket(
     `${experiment.key}:${subjectKey}:traffic`,
     experiment.trafficPercent
   );
@@ -62,10 +112,11 @@ export const isExperimentEnabled = (
     return false;
   }
 
-  const rules = experiment.segmentRules ?? {};
-  const includeSubjectKeys = rules.includeSubjectKeys ?? [];
-  const includeGroups = rules.includeGroups ?? [];
-  const rolloutPercent = rules.rolloutPercent ?? 100;
+  const {
+    includeSubjectKeys,
+    includeGroups,
+    rolloutPercent
+  } = getSegmentRules(experiment);
 
   if (!includeSubjectKeys.length && !includeGroups.length && rolloutPercent === 100) {
     return true;
@@ -75,11 +126,11 @@ export const isExperimentEnabled = (
     return true;
   }
 
-  if (includeGroups.some((group) => userGroups.includes(group))) {
+  if (hasGroupMatch(includeGroups, userGroups)) {
     return true;
   }
 
-  return inRollout(`${experiment.key}:${subjectKey}:segment`, rolloutPercent);
+  return inPercentBucket(`${experiment.key}:${subjectKey}:segment`, rolloutPercent);
 };
 
 export const resolveVariant = (
@@ -87,23 +138,10 @@ export const resolveVariant = (
   experiment: ActiveExperiment
 ): string => {
   if (!isInTraffic(subjectKey, experiment)) {
-    return "control";
+    return CONTROL_VARIANT;
   }
 
-  if (!experiment.variants.length) {
-    return "on";
-  }
-
-  const variantBucket = fnv1a(`${subjectKey}:${experiment.key}:variants`) % 100;
-  let cumulative = 0;
-  for (const variant of experiment.variants) {
-    cumulative += variant.weightPercent;
-    if (variantBucket < cumulative) {
-      return variant.key;
-    }
-  }
-
-  return experiment.variants[0]?.key ?? "control";
+  return resolveVariantInsideTraffic(subjectKey, experiment);
 };
 
 export const resolveAssignment = (
@@ -113,15 +151,15 @@ export const resolveAssignment = (
 ): AssignmentResult => {
   const eligible = isExperimentEnabled(subjectKey, userGroups, experiment);
   if (!eligible) {
-    return { enabled: false, variant: "control" };
+    return { enabled: false, variant: CONTROL_VARIANT };
   }
 
   if (!isInTraffic(subjectKey, experiment)) {
-    return { enabled: false, variant: "control" };
+    return { enabled: false, variant: CONTROL_VARIANT };
   }
 
   return {
     enabled: true,
-    variant: resolveVariant(subjectKey, experiment)
+    variant: resolveVariantInsideTraffic(subjectKey, experiment)
   };
 };
