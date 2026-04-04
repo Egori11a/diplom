@@ -1,4 +1,4 @@
-﻿# AB Platform
+# AB Platform
 https://www.npmjs.com/package/@mathculture/ab-sdk
 
 Официальная документация проекта AB Platform: open-source self-host решение для feature toggle и A/B-тестирования в React-приложениях.
@@ -33,10 +33,10 @@ Self-host часть платформы:
 ## 4. Ключевые сущности системы
 
 - `Group` (группа): логический сегмент, например команда разработки, бета-группа, регион, тип клиентов.
-- `Group member`: идентификатор участника сегмента (в MVP это `anonymous_id`/`member_key`).
+- `Group member`: идентификатор участника сегмента (в MVP это `subject_key`/`member_key`).
 - `Feature Toggle / Experiment`: правило показа фичи и вариантности.
 - `Variant`: вариант эксперимента (`A`, `B`, ...), влияет на поведение/UI.
-- `Segment Rules`: условия включения (группы, `anonymous_id`, rollout%).
+- `Segment Rules`: условия включения (группы, `subject_key`, rollout%).
 
 ## 5. Как работает система (E2E)
 
@@ -45,13 +45,27 @@ Self-host часть платформы:
 3. SDK запрашивает активные эксперименты через backend:
    - `GET /sdk/experiments/active?appId=...`
 4. SDK определяет, включен ли эксперимент для текущего пользователя:
-   - по `anonymous_id`
+   - по `subject_key`
    - по переданным `userGroups`
-   - по rollout%.
-5. Компонент получает `enabled` и `variant`, показывает нужный UI.
-6. SDK буферизует события и отправляет батчами:
+   - по `rolloutPercent`.
+5. Для пользователей, прошедших сегментацию, SDK дополнительно применяет `trafficPercent`.
+6. Компонент получает `enabled` и `variant`, показывает нужный UI.
+7. SDK буферизует события и отправляет батчами:
    - `POST /sdk/events/batch`
-7. Backend сохраняет события в ClickHouse и строит метрики для admin dashboard.
+8. Backend сохраняет события в ClickHouse и строит метрики для admin dashboard.
+
+### 5.1. Приоритеты правил в SDK
+
+1. Сначала проверяется `featureEnabled`.
+2. Затем сегментация: `includeSubjectKeys`, `includeGroups`, `rolloutPercent`.
+3. После этого применяется `trafficPercent`.
+4. Если есть варианты — выбирается `variant` по весам.
+5. Если `variants` пуст, для включенной фичи SDK возвращает технический вариант `"on"`.
+
+Коротко про разницу процентов:
+
+- `rolloutPercent` — кто попадает в сегмент.
+- `trafficPercent` — кто из сегмента реально получает экспериментный контур.
 
 ## 6. Инструкция для команды, которая хочет начать пользоваться платформой
 
@@ -109,6 +123,7 @@ export function Root() {
       config={{
         apiUrl: "https://ab.company.internal",
         appId: "web-main",
+        subjectKey: "subject:9b7d...",
         userGroups: ["frontend-team"],
         cacheTtlMs: 30000,
         flushIntervalMs: 5000,
@@ -120,6 +135,12 @@ export function Root() {
   );
 }
 ```
+
+Требования к `subjectKey`:
+
+- Используйте только стабильный непрямой идентификатор (`subject:*`, UUID, hash, opaque key).
+- Не передавайте в `subjectKey` raw `userId`, email, телефон или другие чувствительные поля.
+- Рекомендуемая практика: backend/auth выдает отдельный публичный `subject_key`, который и передается в SDK.
 
 Использование в feature-компоненте:
 
@@ -156,7 +177,8 @@ export function CheckoutCTA() {
 4. Экран `Фича-тогглы`:
    - создать тоггл/эксперимент
    - назначить группы
-   - задать rollout%
+   - задать `rollout%` и `traffic%`
+   - при необходимости добавить `Additional subject keys` (только ручной точечный таргетинг)
    - включить/выключить фичу.
 
 ### 6.4. Проверить работоспособность
@@ -176,6 +198,7 @@ export function CheckoutCTA() {
 - Включать rollout поэтапно: `1% -> 10% -> 25% -> 50% -> 100%`.
 - Держать понятные ключи тогглов в kebab-case.
 - После завершения эксперимента архивировать/удалять неактуальные тогглы.
+- Для сегментации использовать безопасный `subject_key` (opaque), а не внутренние ID пользователей.
 
 ## 7. Как стыкуется AB Platform с backend команды
 
@@ -247,6 +270,13 @@ Groups:
 Analytics:
 
 - `GET /admin/analytics/feature-toggles/:experimentKey?appId=...` (JWT)
+
+Типы событий:
+
+- `impression` — отправляется SDK автоматически при `enabled=true`.
+- `click` — отправляется только при явном `track("click")`.
+- `conversion` — отправляется только при явном `track("conversion")`.
+- `custom` — отправляется только при явном `track("custom")`.
 
 ## 9. Локальная разработка
 

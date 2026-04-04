@@ -90,12 +90,28 @@ export class DbService implements OnModuleDestroy {
       ADD COLUMN IF NOT EXISTS segment_rules JSONB NOT NULL DEFAULT '{}'::jsonb;
     `);
 
+    await this.pg.query(`
+      UPDATE experiments
+      SET segment_rules = jsonb_set(
+        COALESCE(segment_rules, '{}'::jsonb),
+        '{includeSubjectKeys}',
+        segment_rules->'includeAnonymousIds',
+        true
+      )
+      WHERE segment_rules ? 'includeAnonymousIds'
+        AND NOT (segment_rules ? 'includeSubjectKeys');
+
+      UPDATE experiments
+      SET segment_rules = segment_rules - 'includeAnonymousIds'
+      WHERE segment_rules ? 'includeAnonymousIds';
+    `);
+
     await this.clickhouse.command({
       query: `
         CREATE TABLE IF NOT EXISTS events (
           event_id String,
           app_id String,
-          anonymous_id String,
+          subject_key String,
           experiment_key String,
           variant_key String,
           type String,
@@ -103,6 +119,13 @@ export class DbService implements OnModuleDestroy {
           meta String
         ) ENGINE = MergeTree
         ORDER BY (experiment_key, ts, event_id)
+      `
+    });
+
+    await this.clickhouse.command({
+      query: `
+        ALTER TABLE events
+        ADD COLUMN IF NOT EXISTS subject_key String
       `
     });
 

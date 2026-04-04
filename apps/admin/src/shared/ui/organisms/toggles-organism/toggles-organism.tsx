@@ -1,4 +1,5 @@
-import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
+﻿import { ButtonAtom, CardAtom, InputAtom, TagAtom } from "../../atoms";
+import { adminUiText } from "../../../config";
 import type { TogglesOrganismProps } from "./types";
 import "./toggles-organism.css";
 
@@ -16,16 +17,16 @@ export const TogglesOrganism = ({
   return (
     <CardAtom>
       <div className="toggles-organism__header">
-        <h2>Feature toggles</h2>
+        <h2>{adminUiText.toggles.heading}</h2>
         <div className="toggles-organism__header-actions">
           <InputAtom
             className="toggles-organism__search"
-            placeholder="Search by name or key"
+            placeholder="Поиск по названию или ключу"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
           />
           <ButtonAtom type="button" onClick={onCreateToggle} disabled={isBusy}>
-            Create toggle
+            {adminUiText.toggles.createButton}
           </ButtonAtom>
         </div>
       </div>
@@ -33,12 +34,12 @@ export const TogglesOrganism = ({
       <table className="toggles-organism__table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Feature key</th>
-            <th>Status</th>
-            <th>Groups</th>
-            <th>Rollout</th>
-            <th>Traffic</th>
+            <th>Название</th>
+            <th>Ключ фичи</th>
+            <th>Статус</th>
+            <th>Группы</th>
+            <th>Раскатка</th>
+            <th>Трафик</th>
             <th />
           </tr>
         </thead>
@@ -56,7 +57,7 @@ export const TogglesOrganism = ({
               <td>{toggle.featureKey}</td>
               <td>
                 <TagAtom variant={toggle.featureEnabled ? "success" : "warn"}>
-                  {toggle.featureEnabled ? "ON" : "OFF"}
+                  {toggle.featureEnabled ? "ВКЛ" : "ВЫКЛ"}
                 </TagAtom>
               </td>
               <td>{(toggle.segmentRules?.includeGroups ?? []).join(", ") || "-"}</td>
@@ -70,7 +71,7 @@ export const TogglesOrganism = ({
                     onClick={() => onEditToggle(toggle)}
                     disabled={isBusy}
                   >
-                    Edit
+                    Изменить
                   </ButtonAtom>
                   <ButtonAtom
                     variant="secondary"
@@ -78,7 +79,7 @@ export const TogglesOrganism = ({
                     onClick={() => onInspectToggle(toggle.id)}
                     disabled={isBusy}
                   >
-                    Analytics
+                    Аналитика
                   </ButtonAtom>
                   <ButtonAtom
                     variant="secondary"
@@ -86,7 +87,7 @@ export const TogglesOrganism = ({
                     onClick={() => onDeleteToggle(toggle.id)}
                     disabled={isBusy}
                   >
-                    Delete
+                    Удалить
                   </ButtonAtom>
                 </div>
               </td>
@@ -95,7 +96,7 @@ export const TogglesOrganism = ({
         </tbody>
       </table>
 
-      {!toggles.length && <p className="toggles-organism__empty">Nothing found</p>}
+      {!toggles.length && <p className="toggles-organism__empty">Ничего не найдено</p>}
     </CardAtom>
   );
 };

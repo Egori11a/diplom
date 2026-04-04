@@ -1,4 +1,4 @@
-﻿import { ButtonAtom, DrawerAtom, InputAtom, TagAtom, TextareaAtom } from "../../atoms";
+import { ButtonAtom, DrawerAtom, InputAtom, TagAtom, TextareaAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
 import type { GroupDrawerOrganismProps } from "./types";
 import "./group-drawer-organism.css";
@@ -55,7 +55,7 @@ export const GroupDrawerOrganism = ({
         <h3>Состав группы</h3>
         <div className="group-drawer-organism__member-input">
           <InputAtom
-            placeholder="Добавить anonymous_id"
+            placeholder="Добавить subject_key"
             value={memberInput}
             onChange={(event) => onMemberInputChange(event.target.value)}
           />
@@ -96,3 +96,4 @@ export const GroupDrawerOrganism = ({
     </DrawerAtom>
   );
 };
+

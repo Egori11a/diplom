@@ -1,10 +1,12 @@
 export { ABProvider, useAB } from "./react";
 export {
   resolveVariant,
-  getAnonymousId,
+  getSubjectKey,
   isExperimentEnabled,
-  isInTraffic
+  isInTraffic,
+  resolveAssignment
 } from "./assignment";
+export type { AssignmentResult } from "./assignment";
 export type {
   ABProviderConfig,
   ABHookResult,

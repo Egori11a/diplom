@@ -1,10 +1,24 @@
 import type { ActiveExperiment } from "./types";
 
-const STORAGE_KEY = "ab_anonymous_id";
+const STORAGE_KEY = "ab_subject_key";
+const SERVER_SUBJECT_KEY = "server-subject";
+const CONTROL_VARIANT = "control";
+const ON_VARIANT = "on";
 
-export const getAnonymousId = (): string => {
+export interface AssignmentResult {
+  enabled: boolean;
+  variant: string;
+}
+
+interface NormalizedSegmentRules {
+  includeSubjectKeys: string[];
+  includeGroups: string[];
+  rolloutPercent: number;
+}
+
+export const getSubjectKey = (): string => {
   if (typeof window === "undefined") {
-    return "server-anonymous";
+    return SERVER_SUBJECT_KEY;
   }
 
   const fromStorage = window.localStorage.getItem(STORAGE_KEY);
@@ -31,7 +45,7 @@ const fnv1a = (value: string): number => {
   return hash >>> 0;
 };
 
-const inRollout = (seed: string, percent: number): boolean => {
+const inPercentBucket = (seed: string, percent: number): boolean => {
   if (percent >= 100) {
     return true;
   }
@@ -41,59 +55,37 @@ const inRollout = (seed: string, percent: number): boolean => {
   return fnv1a(seed) % 100 < percent;
 };
 
-export const isInTraffic = (
-  anonymousId: string,
+const getSegmentRules = (
   experiment: ActiveExperiment
-): boolean => {
-  return inRollout(
-    `${experiment.key}:${anonymousId}:traffic`,
-    experiment.trafficPercent
-  );
+): NormalizedSegmentRules => {
+  const rules = experiment.segmentRules ?? {};
+  return {
+    includeSubjectKeys: rules.includeSubjectKeys ?? [],
+    includeGroups: rules.includeGroups ?? [],
+    rolloutPercent: rules.rolloutPercent ?? 100
+  };
 };
 
-export const isExperimentEnabled = (
-  anonymousId: string,
-  userGroups: string[],
-  experiment: ActiveExperiment
-): boolean => {
-  if (!experiment.featureEnabled) {
+const hasGroupMatch = (includeGroups: string[], userGroups: string[]): boolean => {
+  if (!includeGroups.length || !userGroups.length) {
     return false;
   }
 
-  const rules = experiment.segmentRules ?? {};
-  const includeIds = rules.includeAnonymousIds ?? [];
-  const includeGroups = rules.includeGroups ?? [];
-  const rolloutPercent = rules.rolloutPercent ?? 100;
-
-  if (!includeIds.length && !includeGroups.length && rolloutPercent === 100) {
-    return true;
-  }
-
-  if (includeIds.includes(anonymousId)) {
-    return true;
-  }
-
-  if (includeGroups.some((group) => userGroups.includes(group))) {
-    return true;
-  }
-
-  return inRollout(`${experiment.key}:${anonymousId}:segment`, rolloutPercent);
+  const userGroupsSet = new Set(userGroups);
+  return includeGroups.some((group) => userGroupsSet.has(group));
 };
 
-export const resolveVariant = (
-  anonymousId: string,
+const resolveVariantInsideTraffic = (
+  subjectKey: string,
   experiment: ActiveExperiment
 ): string => {
-  if (!isInTraffic(anonymousId, experiment)) {
-    return "control";
-  }
-
   if (!experiment.variants.length) {
-    return "on";
+    return ON_VARIANT;
   }
 
-  const variantBucket = fnv1a(`${anonymousId}:${experiment.key}:variants`) % 100;
+  const variantBucket = fnv1a(`${subjectKey}:${experiment.key}:variants`) % 100;
   let cumulative = 0;
+
   for (const variant of experiment.variants) {
     cumulative += variant.weightPercent;
     if (variantBucket < cumulative) {
@@ -101,5 +93,73 @@ export const resolveVariant = (
     }
   }
 
-  return experiment.variants[0]?.key ?? "control";
+  return experiment.variants[0]?.key ?? CONTROL_VARIANT;
+};
+
+export const isInTraffic = (subjectKey: string, experiment: ActiveExperiment): boolean => {
+  return inPercentBucket(
+    `${experiment.key}:${subjectKey}:traffic`,
+    experiment.trafficPercent
+  );
+};
+
+export const isExperimentEnabled = (
+  subjectKey: string,
+  userGroups: string[],
+  experiment: ActiveExperiment
+): boolean => {
+  if (!experiment.featureEnabled) {
+    return false;
+  }
+
+  const {
+    includeSubjectKeys,
+    includeGroups,
+    rolloutPercent
+  } = getSegmentRules(experiment);
+
+  if (!includeSubjectKeys.length && !includeGroups.length && rolloutPercent === 100) {
+    return true;
+  }
+
+  if (includeSubjectKeys.includes(subjectKey)) {
+    return true;
+  }
+
+  if (hasGroupMatch(includeGroups, userGroups)) {
+    return true;
+  }
+
+  return inPercentBucket(`${experiment.key}:${subjectKey}:segment`, rolloutPercent);
+};
+
+export const resolveVariant = (
+  subjectKey: string,
+  experiment: ActiveExperiment
+): string => {
+  if (!isInTraffic(subjectKey, experiment)) {
+    return CONTROL_VARIANT;
+  }
+
+  return resolveVariantInsideTraffic(subjectKey, experiment);
+};
+
+export const resolveAssignment = (
+  subjectKey: string,
+  userGroups: string[],
+  experiment: ActiveExperiment
+): AssignmentResult => {
+  const eligible = isExperimentEnabled(subjectKey, userGroups, experiment);
+  if (!eligible) {
+    return { enabled: false, variant: CONTROL_VARIANT };
+  }
+
+  if (!isInTraffic(subjectKey, experiment)) {
+    return { enabled: false, variant: CONTROL_VARIANT };
+  }
+
+  return {
+    enabled: true,
+    variant: resolveVariantInsideTraffic(subjectKey, experiment)
+  };
 };

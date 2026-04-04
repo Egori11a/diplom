@@ -7,11 +7,84 @@ import {
 import { DbService } from "../db/db.service";
 import { UpsertExperimentDto } from "./dto/upsert-experiment.dto";
 
+interface ExperimentRow {
+  id: string;
+  app_id: string;
+  key: string;
+  name: string;
+  feature_key?: string | null;
+  feature_enabled: boolean;
+  segment_rules?: Record<string, unknown> | null;
+  status: string;
+  traffic_percent: number;
+  start_at?: string | null;
+  end_at?: string | null;
+}
+
+interface ActiveExperimentRow {
+  id: string;
+  key: string;
+  featureKey?: string | null;
+  featureEnabled: boolean;
+  segmentRules?: Record<string, unknown> | null;
+  trafficPercent: number;
+}
+
+interface ListVariantRow {
+  id: string;
+  key: string;
+  weightPercent: number;
+  payload: Record<string, unknown>;
+}
+
+interface ActiveVariantRow {
+  key: string;
+  weightPercent: number;
+}
+
+interface ExperimentListView {
+  id: string;
+  appId: string;
+  key: string;
+  name: string;
+  featureKey: string;
+  featureEnabled: boolean;
+  segmentRules: Record<string, unknown>;
+  status: string;
+  trafficPercent: number;
+  startAt?: string | null;
+  endAt?: string | null;
+  variants: ListVariantRow[];
+}
+
+interface ActiveExperimentView {
+  key: string;
+  featureKey: string;
+  featureEnabled: boolean;
+  segmentRules: Record<string, unknown>;
+  trafficPercent: number;
+  variants: ActiveVariantRow[];
+}
+
+interface PgErrorWithCode {
+  code?: string;
+}
+
+const UNIQUE_VIOLATION_CODE = "23505";
+
+const isUniqueViolation = (error: unknown): error is PgErrorWithCode => {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  return (error as PgErrorWithCode).code === UNIQUE_VIOLATION_CODE;
+};
+
 @Injectable()
 export class ExperimentsService {
   constructor(private readonly db: DbService) {}
 
-  async list(appId?: string): Promise<{ experiments: unknown[] }> {
+  async list(appId?: string): Promise<{ experiments: ExperimentListView[] }> {
     const experimentsQuery = appId
       ? {
           query: "SELECT * FROM experiments WHERE app_id = $1 ORDER BY created_at DESC",
@@ -22,36 +95,20 @@ export class ExperimentsService {
           params: [] as string[]
         };
 
-    const experimentsResult = await this.db.pg.query(experimentsQuery.query, experimentsQuery.params);
-    const experiments = await Promise.all(
-      experimentsResult.rows.map(async (row: any) => {
-        const variants = await this.db.pg.query(
-          "SELECT id, key, weight_percent AS \"weightPercent\", payload FROM variants WHERE experiment_id = $1 ORDER BY key",
-          [row.id]
-        );
+    const experimentsResult = await this.db.pg.query<ExperimentRow>(
+      experimentsQuery.query,
+      experimentsQuery.params
+    );
 
-        return {
-          id: row.id,
-          appId: row.app_id,
-          key: row.key,
-          name: row.name,
-          featureKey: row.feature_key || row.key,
-          featureEnabled: row.feature_enabled,
-          segmentRules: row.segment_rules ?? {},
-          status: row.status,
-          trafficPercent: row.traffic_percent,
-          startAt: row.start_at,
-          endAt: row.end_at,
-          variants: variants.rows
-        };
-      })
+    const experiments = await Promise.all(
+      experimentsResult.rows.map((row) => this.mapListExperiment(row))
     );
 
     return { experiments };
   }
 
-  async active(appId: string): Promise<{ experiments: unknown[] }> {
-    const result = await this.db.pg.query(
+  async active(appId: string): Promise<{ experiments: ActiveExperimentView[] }> {
+    const result = await this.db.pg.query<ActiveExperimentRow>(
       `SELECT id, key, feature_key AS "featureKey", feature_enabled AS "featureEnabled",
               segment_rules AS "segmentRules", traffic_percent AS "trafficPercent"
        FROM experiments
@@ -60,21 +117,7 @@ export class ExperimentsService {
     );
 
     const experiments = await Promise.all(
-      result.rows.map(async (row: any) => {
-        const variants = await this.db.pg.query(
-          "SELECT key, weight_percent AS \"weightPercent\" FROM variants WHERE experiment_id = $1 ORDER BY key",
-          [row.id]
-        );
-
-        return {
-          key: row.key,
-          featureKey: row.featureKey || row.key,
-          featureEnabled: row.featureEnabled,
-          segmentRules: row.segmentRules ?? {},
-          trafficPercent: row.trafficPercent,
-          variants: variants.rows
-        };
-      })
+      result.rows.map((row) => this.mapActiveExperiment(row))
     );
 
     return { experiments };
@@ -82,6 +125,7 @@ export class ExperimentsService {
 
   async create(dto: UpsertExperimentDto): Promise<{ id: string }> {
     this.validateWeights(dto);
+
     let exp;
     try {
       exp = await this.db.pg.query<{ id: string }>(
@@ -91,21 +135,10 @@ export class ExperimentsService {
         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10)
         RETURNING id
         `,
-        [
-          dto.appId,
-          dto.key,
-          dto.name,
-          dto.featureKey || dto.key,
-          dto.featureEnabled,
-          JSON.stringify(dto.segmentRules ?? {}),
-          dto.status,
-          dto.trafficPercent,
-          dto.startAt ?? null,
-          dto.endAt ?? null
-        ]
+        this.buildWriteParams(dto)
       );
-    } catch (error: any) {
-      if (error?.code === "23505") {
+    } catch (error: unknown) {
+      if (isUniqueViolation(error)) {
         throw new ConflictException(
           `Experiment with key "${dto.key}" already exists for app "${dto.appId}"`
         );
@@ -120,10 +153,7 @@ export class ExperimentsService {
 
   async update(id: string, dto: UpsertExperimentDto): Promise<{ id: string }> {
     this.validateWeights(dto);
-    const found = await this.db.pg.query("SELECT id FROM experiments WHERE id = $1", [id]);
-    if (!found.rowCount) {
-      throw new NotFoundException("Experiment not found");
-    }
+    await this.ensureExperimentExists(id);
 
     await this.db.pg.query(
       `
@@ -133,19 +163,7 @@ export class ExperimentsService {
           start_at = $9, end_at = $10, updated_at = NOW()
       WHERE id = $11
       `,
-      [
-        dto.appId,
-        dto.key,
-        dto.name,
-        dto.featureKey || dto.key,
-        dto.featureEnabled,
-        JSON.stringify(dto.segmentRules ?? {}),
-        dto.status,
-        dto.trafficPercent,
-        dto.startAt ?? null,
-        dto.endAt ?? null,
-        id
-      ]
+      [...this.buildWriteParams(dto), id]
     );
 
     await this.db.pg.query("DELETE FROM variants WHERE experiment_id = $1", [id]);
@@ -154,13 +172,82 @@ export class ExperimentsService {
   }
 
   async remove(id: string): Promise<{ ok: true }> {
+    await this.ensureExperimentExists(id);
+
+    await this.db.pg.query("DELETE FROM experiments WHERE id = $1", [id]);
+    return { ok: true };
+  }
+
+  private async mapListExperiment(row: ExperimentRow): Promise<ExperimentListView> {
+    const variants = await this.fetchListVariants(row.id);
+
+    return {
+      id: row.id,
+      appId: row.app_id,
+      key: row.key,
+      name: row.name,
+      featureKey: row.feature_key || row.key,
+      featureEnabled: row.feature_enabled,
+      segmentRules: row.segment_rules ?? {},
+      status: row.status,
+      trafficPercent: row.traffic_percent,
+      startAt: row.start_at,
+      endAt: row.end_at,
+      variants
+    };
+  }
+
+  private async mapActiveExperiment(
+    row: ActiveExperimentRow
+  ): Promise<ActiveExperimentView> {
+    const variants = await this.fetchActiveVariants(row.id);
+
+    return {
+      key: row.key,
+      featureKey: row.featureKey || row.key,
+      featureEnabled: row.featureEnabled,
+      segmentRules: row.segmentRules ?? {},
+      trafficPercent: row.trafficPercent,
+      variants
+    };
+  }
+
+  private async fetchListVariants(experimentId: string): Promise<ListVariantRow[]> {
+    const result = await this.db.pg.query<ListVariantRow>(
+      "SELECT id, key, weight_percent AS \"weightPercent\", payload FROM variants WHERE experiment_id = $1 ORDER BY key",
+      [experimentId]
+    );
+    return result.rows;
+  }
+
+  private async fetchActiveVariants(experimentId: string): Promise<ActiveVariantRow[]> {
+    const result = await this.db.pg.query<ActiveVariantRow>(
+      "SELECT key, weight_percent AS \"weightPercent\" FROM variants WHERE experiment_id = $1 ORDER BY key",
+      [experimentId]
+    );
+    return result.rows;
+  }
+
+  private buildWriteParams(dto: UpsertExperimentDto): unknown[] {
+    return [
+      dto.appId,
+      dto.key,
+      dto.name,
+      dto.featureKey || dto.key,
+      dto.featureEnabled,
+      JSON.stringify(dto.segmentRules ?? {}),
+      dto.status,
+      dto.trafficPercent,
+      dto.startAt ?? null,
+      dto.endAt ?? null
+    ];
+  }
+
+  private async ensureExperimentExists(id: string): Promise<void> {
     const found = await this.db.pg.query("SELECT id FROM experiments WHERE id = $1", [id]);
     if (!found.rowCount) {
       throw new NotFoundException("Experiment not found");
     }
-
-    await this.db.pg.query("DELETE FROM experiments WHERE id = $1", [id]);
-    return { ok: true };
   }
 
   private validateWeights(dto: UpsertExperimentDto): void {

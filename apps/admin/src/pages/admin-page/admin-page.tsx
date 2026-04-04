@@ -1,4 +1,4 @@
-import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
+﻿import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
 import {
   AuthFormOrganism,
   ConfirmDeleteGroupOrganism,
@@ -10,6 +10,7 @@ import {
   ToggleDrawerOrganism,
   TogglesOrganism
 } from "../../shared/ui/organisms";
+import { adminUiText } from "../../shared/config";
 import { useAdminAuth, useAdminData, useAdminDerived, useAdminUiState } from "./hooks";
 import type { AdminPageProps } from "./types";
 import "./admin-page.css";
@@ -101,10 +102,7 @@ export const AdminPage = ({
 
   return (
     <main className="admin-page">
-      <HeroOrganism
-        title="Центр управления фича-тогглами"
-        subtitle="Группы команд, тогглы и управляемая раскатка в одной системе."
-      />
+      <HeroOrganism title={adminUiText.hero.title} subtitle={adminUiText.hero.subtitle} />
 
       {!token ? (
         <AuthFormOrganism
@@ -123,21 +121,21 @@ export const AdminPage = ({
               variant={activeScreen === "onboarding" ? "primary" : "secondary"}
               onClick={() => setActiveScreen("onboarding")}
             >
-              Обучение
+              {adminUiText.tabs.onboarding}
             </ButtonAtom>
             <ButtonAtom
               type="button"
               variant={activeScreen === "groups" ? "primary" : "secondary"}
               onClick={() => setActiveScreen("groups")}
             >
-              Группы
+              {adminUiText.tabs.groups}
             </ButtonAtom>
             <ButtonAtom
               type="button"
               variant={activeScreen === "toggles" ? "primary" : "secondary"}
               onClick={() => setActiveScreen("toggles")}
             >
-              Фича-тогглы
+              {adminUiText.tabs.toggles}
             </ButtonAtom>
           </section>
 
@@ -174,7 +172,7 @@ export const AdminPage = ({
                 isBusy={isBusy}
                 onSearchQueryChange={setToggleSearchQuery}
                 onCreateToggle={openCreateToggle}
-                onEditToggle={openEditToggle}
+                onEditToggle={(toggle) => openEditToggle(toggle, groups)}
                 onInspectToggle={setSelectedToggleId}
                 onDeleteToggle={(toggleId) => {
                   setSelectedToggleId((previous) =>
@@ -248,7 +246,12 @@ export const AdminPage = ({
             groupName={pendingDeleteGroup.name}
             isBusy={isBusy}
             onCancel={() => setPendingDeleteGroup(null)}
-            onConfirm={() => deleteGroupMutation.mutate(pendingDeleteGroup.id)}
+            onConfirm={() =>
+              deleteGroupMutation.mutate({
+                groupId: pendingDeleteGroup.id,
+                groupName: pendingDeleteGroup.name
+              })
+            }
           />
         </>
       )}

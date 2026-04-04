@@ -19,7 +19,7 @@ describe("EventBuffer", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(crypto, "randomUUID").mockReturnValueOnce("e-1").mockReturnValueOnce("e-2");
 
-    const buffer = new EventBuffer(config, "anon-1");
+    const buffer = new EventBuffer(config, "subject-1");
     buffer.track({
       type: "click",
       experiment_key: "cta-color",
@@ -49,7 +49,7 @@ describe("EventBuffer", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.spyOn(crypto, "randomUUID").mockReturnValueOnce("e-1").mockReturnValueOnce("e-2");
 
-    const buffer = new EventBuffer({ ...config, batchSize: 20 }, "anon-1");
+    const buffer = new EventBuffer({ ...config, batchSize: 20 }, "subject-1");
     buffer.track({
       type: "click",
       experiment_key: "cta-color",

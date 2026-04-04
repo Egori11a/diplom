@@ -4,7 +4,7 @@ import { DbService } from "../db/db.service";
 interface EventInput {
   event_id: string;
   app_id: string;
-  anonymous_id: string;
+  subject_key: string;
   experiment_key: string;
   variant_key: string;
   type: "impression" | "click" | "conversion" | "custom";

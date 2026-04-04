@@ -55,4 +55,27 @@ describe("GroupsService", () => {
     const lastCall = db.pg.query.mock.calls[3];
     expect(lastCall[1][0]).toBe(JSON.stringify(["new-team", "beta"]));
   });
+
+  it("removes deleted group from experiment segment rules", async () => {
+    const { service, db } = makeService();
+    db.pg.query
+      .mockResolvedValueOnce({ rows: [{ name: "team-a" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: "exp-1",
+            segment_rules: { includeGroups: ["team-a", "team-b"] }
+          }
+        ]
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const result = await service.remove("g-1");
+
+    expect(result).toEqual({ ok: true });
+    const updateCall = db.pg.query.mock.calls[3];
+    expect(updateCall[1][0]).toBe(JSON.stringify(["team-b"]));
+    expect(updateCall[1][1]).toBe("exp-1");
+  });
 });

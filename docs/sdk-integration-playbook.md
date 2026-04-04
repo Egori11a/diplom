@@ -44,7 +44,8 @@ SDK не включает:
 Рекомендуется:
 1. Авторизация пользователя в продукте.
 2. Формирование `userGroups` (пример: `role:pm`, `region:ru`, `user:123`).
-3. Конфигурация через env:
+3. Передавать в SDK только безопасный `subject_key` (opaque key/UUID/hash), а не raw `userId` или email.
+4. Конфигурация через env:
 - `VITE_AB_API_URL`
 - `VITE_AB_APP_ID`
 - `VITE_AB_USER_GROUPS` (опционально)
@@ -66,7 +67,7 @@ SDK не включает:
       "featureKey": "checkout-redesign",
       "featureEnabled": true,
       "segmentRules": {
-        "includeAnonymousIds": [],
+        "includeSubjectKeys": [],
         "includeGroups": ["role:beta"],
         "rolloutPercent": 25
       },
@@ -88,7 +89,7 @@ SDK не включает:
     {
       "event_id": "uuid",
       "app_id": "finance-tracker",
-      "anonymous_id": "uuid",
+      "subject_key": "subject:uuid",
       "experiment_key": "checkout-redesign",
       "variant_key": "variant-a",
       "type": "click",
@@ -132,6 +133,7 @@ import { ABProvider } from "@mathculture/ab-sdk";
   config={{
     apiUrl: import.meta.env.VITE_AB_API_URL,
     appId: import.meta.env.VITE_AB_APP_ID,
+    subjectKey: currentUser.subjectKey,
     userGroups: computedGroups,
     cacheTtlMs: 30000,
     flushIntervalMs: 5000,
@@ -141,6 +143,11 @@ import { ABProvider } from "@mathculture/ab-sdk";
   <App />
 </ABProvider>
 ```
+
+Где брать `subjectKey`:
+- из auth/backend-контракта (отдельное поле, например `subject_key`);
+- не использовать напрямую внутренние ID, email или телефон;
+- ключ должен быть стабильным для пользователя в рамках приложения.
 
 3. Использует тоггл в коде:
 ```tsx
@@ -204,3 +211,50 @@ Backend:
 1. У команды есть naming convention ключей (`kebab-case`).
 2. Есть правило lifecycle тоггла (создали -> раскатили -> удалили/архивировали).
 3. Для каждой фичи зафиксированы KPI и критерий успеха.
+
+## 10. Текущая семантика runtime (v0.1.1)
+
+Этот раздел отражает фактическое поведение текущей реализации SDK/Admin/Backend.
+
+### 10.1 Порядок assignment в SDK
+
+Для каждого ключа эксперимента SDK принимает решение в таком порядке:
+1. Проверка `featureEnabled`.
+2. Проверка попадания в сегмент (`includeSubjectKeys`, `includeGroups`, `rolloutPercent`).
+3. Применение `trafficPercent` для пользователей, прошедших сегментацию.
+4. Выбор варианта по `weightPercent` (если варианты настроены).
+
+Если `variants` пустой и фича включена для пользователя, SDK возвращает технический вариант `"on"`.
+
+### 10.2 Rollout и Traffic
+
+- `rolloutPercent`: определяет, кто попадает в сегмент эксперимента.
+- `trafficPercent`: определяет, кто из этого сегмента реально получает экспериментный runtime.
+
+Эти параметры не взаимозаменяемы и применяются последовательно.
+
+### 10.3 Additional subject keys в Admin UI
+
+Поле `Additional subject keys (comma-separated)` используется только для ручного точечного таргетинга.
+
+Текущее поведение:
+- участники групп автоматически в это поле не подмешиваются;
+- при редактировании тоггла идентификаторы, полученные из выбранных групп, из поля исключаются;
+- поле предназначено только для явно заданных персональных идентификаторов.
+
+### 10.4 Поведение при удалении группы
+
+При удалении группы backend удаляет ее имя из `segmentRules.includeGroups` у связанных тогглов.
+
+### 10.5 Типы событий и метрики
+
+Типы событий SDK/Backend:
+- `impression` (автоматически из SDK при `enabled=true`)
+- `click` (вручную: `track("click")`)
+- `conversion` (вручную: `track("conversion")`)
+- `custom` (вручную: `track("custom")`)
+
+Текущие формулы аналитики на backend:
+- `CTR = clicks / impressions`
+- `CR = conversions / impressions`
+- `Wilson 95%` рассчитывается для вероятности клика (`clicks` от `impressions`).

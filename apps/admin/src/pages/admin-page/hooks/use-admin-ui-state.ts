@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ToggleView } from "../../../shared/api";
+import type { GroupView, ToggleView } from "../../../shared/api";
+import { deriveAdditionalSubjectKeysForEdit } from "./use-admin-data.helpers";
 import {
   defaultGroupDescription,
   defaultGroupName,
@@ -69,7 +70,14 @@ export const useAdminUiState = () => {
     setSelectedToggleId(toggleId);
   };
 
-  const openEditToggle = (toggle: ToggleView) => {
+  const openEditToggle = (toggle: ToggleView, groups: GroupView[]) => {
+    const selectedGroupNames = toggle.segmentRules?.includeGroups ?? [];
+    const additionalIds = deriveAdditionalSubjectKeysForEdit(
+      groups,
+      selectedGroupNames,
+      toggle.segmentRules?.includeSubjectKeys ?? []
+    );
+
     setSelectedToggleId(toggle.id);
     setToggleForm({
       id: toggle.id,
@@ -80,8 +88,8 @@ export const useAdminUiState = () => {
       featureEnabled: toggle.featureEnabled,
       rolloutPercent: toggle.segmentRules?.rolloutPercent ?? 100,
       trafficPercent: toggle.trafficPercent ?? 100,
-      groupNames: toggle.segmentRules?.includeGroups ?? [],
-      includeIdsRaw: (toggle.segmentRules?.includeAnonymousIds ?? []).join(","),
+      groupNames: selectedGroupNames,
+      includeIdsRaw: additionalIds.join(","),
       variants:
         toggle.variants.length > 0
           ? toggle.variants.map((variant) => ({
@@ -121,3 +129,4 @@ export const useAdminUiState = () => {
     openEditToggle
   };
 };
+

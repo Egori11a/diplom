@@ -30,7 +30,7 @@ describe("EventsService", () => {
       {
         event_id: "e-1",
         app_id: "demo-app",
-        anonymous_id: "u-1",
+        subject_key: "u-1",
         experiment_key: "checkout-cta",
         variant_key: "A",
         type: "click",
@@ -46,7 +46,7 @@ describe("EventsService", () => {
         {
           event_id: "e-1",
           app_id: "demo-app",
-          anonymous_id: "u-1",
+          subject_key: "u-1",
           experiment_key: "checkout-cta",
           variant_key: "A",
           type: "click",

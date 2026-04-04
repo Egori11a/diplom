@@ -16,7 +16,7 @@ describe("Backend E2E", () => {
   const rolloutHundredKey = `e2e-rollout-hundred-${suffix}`;
   const trafficZeroKey = `e2e-traffic-zero-${suffix}`;
   const simpleToggleKey = `e2e-simple-toggle-${suffix}`;
-  const targetAnonymousId = `target-anon-${suffix}`;
+  const targetSubjectKey = `target-subject-${suffix}`;
   const targetGroup = `qa-canary-${suffix}`;
   let groupId = "";
   const experimentIds: string[] = [];
@@ -102,7 +102,7 @@ describe("Backend E2E", () => {
         trafficPercent: 100,
         segmentRules: {
           includeGroups: [updatedGroupName],
-          includeAnonymousIds: [],
+          includeSubjectKeys: [],
           rolloutPercent: 100
         },
         variants: baseVariants
@@ -137,7 +137,7 @@ describe("Backend E2E", () => {
         trafficPercent: 100,
         segmentRules: {
           includeGroups: [updatedGroupName],
-          includeAnonymousIds: [],
+          includeSubjectKeys: [],
           rolloutPercent: 100
         },
         variants: [
@@ -159,12 +159,12 @@ describe("Backend E2E", () => {
     ).toBe(true);
   });
 
-  it("sdk rules e2e: includeAnonymousIds, includeGroups, rollout 0/100, traffic 0 -> control", async () => {
+  it("sdk rules e2e: includeSubjectKeys, includeGroups, rollout 0/100, traffic 0 -> control", async () => {
     const createToggle = async (
       key: string,
       segmentRules: {
         includeGroups: string[];
-        includeAnonymousIds: string[];
+        includeSubjectKeys: string[];
         rolloutPercent: number;
       },
       trafficPercent: number
@@ -192,7 +192,7 @@ describe("Backend E2E", () => {
       includeIdKey,
       {
         includeGroups: [],
-        includeAnonymousIds: [targetAnonymousId],
+        includeSubjectKeys: [targetSubjectKey],
         rolloutPercent: 0
       },
       100
@@ -201,7 +201,7 @@ describe("Backend E2E", () => {
       includeGroupKey,
       {
         includeGroups: [targetGroup],
-        includeAnonymousIds: [],
+        includeSubjectKeys: [],
         rolloutPercent: 0
       },
       100
@@ -210,7 +210,7 @@ describe("Backend E2E", () => {
       rolloutZeroKey,
       {
         includeGroups: [],
-        includeAnonymousIds: [],
+        includeSubjectKeys: [],
         rolloutPercent: 0
       },
       100
@@ -219,7 +219,7 @@ describe("Backend E2E", () => {
       rolloutHundredKey,
       {
         includeGroups: [],
-        includeAnonymousIds: [],
+        includeSubjectKeys: [],
         rolloutPercent: 100
       },
       100
@@ -228,7 +228,7 @@ describe("Backend E2E", () => {
       trafficZeroKey,
       {
         includeGroups: [],
-        includeAnonymousIds: [],
+        includeSubjectKeys: [],
         rolloutPercent: 100
       },
       0
@@ -237,7 +237,7 @@ describe("Backend E2E", () => {
       simpleToggleKey,
       {
         includeGroups: [],
-        includeAnonymousIds: [],
+        includeSubjectKeys: [],
         rolloutPercent: 100
       },
       100
@@ -256,7 +256,7 @@ describe("Backend E2E", () => {
         trafficPercent: 100,
         segmentRules: {
           includeGroups: [],
-          includeAnonymousIds: [],
+          includeSubjectKeys: [],
           rolloutPercent: 100
         },
         variants: []
@@ -287,7 +287,7 @@ describe("Backend E2E", () => {
     expect(simpleNoVariantsExperiment).toBeDefined();
 
     expect(
-      isExperimentEnabled(targetAnonymousId, [], includeByIdExperiment!)
+      isExperimentEnabled(targetSubjectKey, [], includeByIdExperiment!)
     ).toBe(true);
     expect(
       isExperimentEnabled(`other-${suffix}`, [], includeByIdExperiment!)
@@ -321,7 +321,7 @@ describe("Backend E2E", () => {
         {
           event_id: `e2e-event-${suffix}`,
           app_id: "demo-app",
-          anonymous_id: `anon-${suffix}`,
+          subject_key: `subject-${suffix}`,
           experiment_key: experimentKey,
           variant_key: "A",
           type: "impression",
