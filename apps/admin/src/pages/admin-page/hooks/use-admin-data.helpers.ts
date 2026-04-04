@@ -17,7 +17,7 @@ export interface TogglePayload {
   trafficPercent: number;
   segmentRules: {
     includeGroups: string[];
-    includeAnonymousIds: string[];
+    includeSubjectKeys: string[];
     rolloutPercent: number;
   };
   variants: TogglePayloadVariant[];
@@ -25,7 +25,7 @@ export interface TogglePayload {
 
 export interface BuiltTogglePayload {
   payload: TogglePayload;
-  includeAnonymousIds: string[];
+  includeSubjectKeys: string[];
 }
 
 const toUniqueStrings = (values: string[]): string[] =>
@@ -45,16 +45,16 @@ const normalizeVariant = (
   return { key, weightPercent };
 };
 
-export const buildIncludeAnonymousIds = (
+export const buildIncludeSubjectKeys = (
   includeIdsRaw: string
 ): string[] => {
   return toUniqueStrings(parseCsv(includeIdsRaw));
 };
 
-export const deriveAdditionalAnonymousIdsForEdit = (
+export const deriveAdditionalSubjectKeysForEdit = (
   groups: GroupView[],
   groupNames: string[],
-  includeAnonymousIds: string[]
+  includeSubjectKeys: string[]
 ): string[] => {
   const groupMembers = new Set(
     groups
@@ -62,14 +62,14 @@ export const deriveAdditionalAnonymousIdsForEdit = (
       .flatMap((group) => group.members.map((member) => member.memberKey))
   );
 
-  return includeAnonymousIds.filter((id) => !groupMembers.has(id));
+  return includeSubjectKeys.filter((id) => !groupMembers.has(id));
 };
 
 export const buildTogglePayload = (
   form: ToggleForm
 ): BuiltTogglePayload => {
   const includeGroups = toUniqueStrings(form.groupNames);
-  const includeAnonymousIds = buildIncludeAnonymousIds(form.includeIdsRaw);
+  const includeSubjectKeys = buildIncludeSubjectKeys(form.includeIdsRaw);
   const variants = form.variants
     .map(normalizeVariant)
     .filter((item): item is ToggleFormVariant => Boolean(item))
@@ -80,7 +80,7 @@ export const buildTogglePayload = (
     }));
 
   return {
-    includeAnonymousIds,
+    includeSubjectKeys,
     payload: {
       appId: form.appId.trim(),
       key: form.key.trim(),
@@ -91,7 +91,7 @@ export const buildTogglePayload = (
       trafficPercent: Number(form.trafficPercent),
       segmentRules: {
         includeGroups,
-        includeAnonymousIds,
+        includeSubjectKeys,
         rolloutPercent: Number(form.rolloutPercent)
       },
       variants
@@ -184,3 +184,4 @@ export const removeToggleFromCache = (
   toggles: ToggleView[],
   toggleId: string
 ): ToggleView[] => toggles.filter((toggle) => toggle.id !== toggleId);
+

@@ -1,15 +1,15 @@
 import type { ActiveExperiment } from "./types";
 
-const STORAGE_KEY = "ab_anonymous_id";
+const STORAGE_KEY = "ab_subject_key";
 
 export interface AssignmentResult {
   enabled: boolean;
   variant: string;
 }
 
-export const getAnonymousId = (): string => {
+export const getSubjectKey = (): string => {
   if (typeof window === "undefined") {
-    return "server-anonymous";
+    return "server-subject";
   }
 
   const fromStorage = window.localStorage.getItem(STORAGE_KEY);
@@ -46,18 +46,15 @@ const inRollout = (seed: string, percent: number): boolean => {
   return fnv1a(seed) % 100 < percent;
 };
 
-export const isInTraffic = (
-  anonymousId: string,
-  experiment: ActiveExperiment
-): boolean => {
+export const isInTraffic = (subjectKey: string, experiment: ActiveExperiment): boolean => {
   return inRollout(
-    `${experiment.key}:${anonymousId}:traffic`,
+    `${experiment.key}:${subjectKey}:traffic`,
     experiment.trafficPercent
   );
 };
 
 export const isExperimentEnabled = (
-  anonymousId: string,
+  subjectKey: string,
   userGroups: string[],
   experiment: ActiveExperiment
 ): boolean => {
@@ -66,15 +63,15 @@ export const isExperimentEnabled = (
   }
 
   const rules = experiment.segmentRules ?? {};
-  const includeIds = rules.includeAnonymousIds ?? [];
+  const includeSubjectKeys = rules.includeSubjectKeys ?? [];
   const includeGroups = rules.includeGroups ?? [];
   const rolloutPercent = rules.rolloutPercent ?? 100;
 
-  if (!includeIds.length && !includeGroups.length && rolloutPercent === 100) {
+  if (!includeSubjectKeys.length && !includeGroups.length && rolloutPercent === 100) {
     return true;
   }
 
-  if (includeIds.includes(anonymousId)) {
+  if (includeSubjectKeys.includes(subjectKey)) {
     return true;
   }
 
@@ -82,14 +79,14 @@ export const isExperimentEnabled = (
     return true;
   }
 
-  return inRollout(`${experiment.key}:${anonymousId}:segment`, rolloutPercent);
+  return inRollout(`${experiment.key}:${subjectKey}:segment`, rolloutPercent);
 };
 
 export const resolveVariant = (
-  anonymousId: string,
+  subjectKey: string,
   experiment: ActiveExperiment
 ): string => {
-  if (!isInTraffic(anonymousId, experiment)) {
+  if (!isInTraffic(subjectKey, experiment)) {
     return "control";
   }
 
@@ -97,7 +94,7 @@ export const resolveVariant = (
     return "on";
   }
 
-  const variantBucket = fnv1a(`${anonymousId}:${experiment.key}:variants`) % 100;
+  const variantBucket = fnv1a(`${subjectKey}:${experiment.key}:variants`) % 100;
   let cumulative = 0;
   for (const variant of experiment.variants) {
     cumulative += variant.weightPercent;
@@ -110,21 +107,21 @@ export const resolveVariant = (
 };
 
 export const resolveAssignment = (
-  anonymousId: string,
+  subjectKey: string,
   userGroups: string[],
   experiment: ActiveExperiment
 ): AssignmentResult => {
-  const eligible = isExperimentEnabled(anonymousId, userGroups, experiment);
+  const eligible = isExperimentEnabled(subjectKey, userGroups, experiment);
   if (!eligible) {
     return { enabled: false, variant: "control" };
   }
 
-  if (!isInTraffic(anonymousId, experiment)) {
+  if (!isInTraffic(subjectKey, experiment)) {
     return { enabled: false, variant: "control" };
   }
 
   return {
     enabled: true,
-    variant: resolveVariant(anonymousId, experiment)
+    variant: resolveVariant(subjectKey, experiment)
   };
 };

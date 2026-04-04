@@ -10,7 +10,7 @@ import {
 import { ExperimentClient } from "./client";
 import { EventBuffer } from "./events";
 import {
-  getAnonymousId,
+  getSubjectKey,
   resolveAssignment
 } from "./assignment";
 import type { AssignmentResult } from "./assignment";
@@ -36,12 +36,15 @@ export const ABProvider = ({
   config
 }: PropsWithChildren<{ config: ABProviderConfig }>) => {
   const [experiments, setExperiments] = useState<ActiveExperiment[]>([]);
-  const anonymousId = useMemo(() => getAnonymousId(), []);
+  const subjectKey = useMemo(
+    () => config.subjectKey?.trim() || getSubjectKey(),
+    [config.subjectKey]
+  );
   const cacheTtlMs = config.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
   const clientRef = useRef(
     new ExperimentClient(config.apiUrl, cacheTtlMs)
   );
-  const bufferRef = useRef(new EventBuffer(config, anonymousId));
+  const bufferRef = useRef(new EventBuffer(config, subjectKey));
 
   useEffect(() => {
     bufferRef.current.start();
@@ -74,10 +77,10 @@ export const ABProvider = ({
           return { enabled: false, variant: "control" };
         }
 
-        return resolveAssignment(anonymousId, config.userGroups ?? [], experiment);
+        return resolveAssignment(subjectKey, config.userGroups ?? [], experiment);
       }
     }),
-    [anonymousId, config.userGroups, experiments]
+    [subjectKey, config.userGroups, experiments]
   );
 
   return <ABContext.Provider value={value}>{children}</ABContext.Provider>;

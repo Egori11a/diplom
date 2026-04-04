@@ -30,7 +30,7 @@ class SegmentRulesDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  includeAnonymousIds?: string[];
+  includeSubjectKeys?: string[];
 
   @IsArray()
   @IsString({ each: true })

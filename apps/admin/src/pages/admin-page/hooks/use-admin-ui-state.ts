@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { GroupView, ToggleView } from "../../../shared/api";
-import { deriveAdditionalAnonymousIdsForEdit } from "./use-admin-data.helpers";
+import { deriveAdditionalSubjectKeysForEdit } from "./use-admin-data.helpers";
 import {
   defaultGroupDescription,
   defaultGroupName,
@@ -72,10 +72,10 @@ export const useAdminUiState = () => {
 
   const openEditToggle = (toggle: ToggleView, groups: GroupView[]) => {
     const selectedGroupNames = toggle.segmentRules?.includeGroups ?? [];
-    const additionalIds = deriveAdditionalAnonymousIdsForEdit(
+    const additionalIds = deriveAdditionalSubjectKeysForEdit(
       groups,
       selectedGroupNames,
-      toggle.segmentRules?.includeAnonymousIds ?? []
+      toggle.segmentRules?.includeSubjectKeys ?? []
     );
 
     setSelectedToggleId(toggle.id);
@@ -129,3 +129,4 @@ export const useAdminUiState = () => {
     openEditToggle
   };
 };
+

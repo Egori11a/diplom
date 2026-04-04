@@ -17,7 +17,7 @@ class SdkEventDto {
   app_id!: string;
 
   @IsString()
-  anonymous_id!: string;
+  subject_key!: string;
 
   @IsString()
   experiment_key!: string;

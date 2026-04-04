@@ -3,6 +3,7 @@ export type ABEventType = "impression" | "click" | "conversion" | "custom";
 export interface ABProviderConfig {
   apiUrl: string;
   appId: string;
+  subjectKey?: string;
   userGroups?: string[];
   cacheTtlMs?: number;
   flushIntervalMs?: number;
@@ -25,7 +26,7 @@ export interface ABHookResult {
 }
 
 export interface SegmentRules {
-  includeAnonymousIds?: string[];
+  includeSubjectKeys?: string[];
   includeGroups?: string[];
   rolloutPercent?: number;
 }

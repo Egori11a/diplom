@@ -56,10 +56,10 @@ describe("isExperimentEnabled", () => {
     expect(enabled).toBe(false);
   });
 
-  it("returns true for included anonymous id", () => {
+  it("returns true for included subject key", () => {
     const enabled = isExperimentEnabled("user-1", [], {
       ...baseExperiment,
-      segmentRules: { includeAnonymousIds: ["user-1"], rolloutPercent: 0 }
+      segmentRules: { includeSubjectKeys: ["user-1"], rolloutPercent: 0 }
     });
 
     expect(enabled).toBe(true);

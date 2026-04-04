@@ -3,7 +3,7 @@ import type { ABProviderConfig, TrackEventInput } from "./types";
 interface SdkEvent {
   event_id: string;
   app_id: string;
-  anonymous_id: string;
+  subject_key: string;
   experiment_key: string;
   variant_key: string;
   type: "impression" | "click" | "conversion" | "custom";
@@ -19,7 +19,7 @@ export class EventBuffer {
 
   constructor(
     private readonly config: ABProviderConfig,
-    private readonly anonymousId: string
+    private readonly subjectKey: string
   ) {
     this.batchSize = config.batchSize ?? 20;
     this.flushIntervalMs = config.flushIntervalMs ?? 5_000;
@@ -46,7 +46,7 @@ export class EventBuffer {
     this.events.push({
       event_id: event.event_id ?? crypto.randomUUID(),
       app_id: this.config.appId,
-      anonymous_id: this.anonymousId,
+      subject_key: this.subjectKey,
       experiment_key: event.experiment_key,
       variant_key: event.variant_key,
       type: event.type,

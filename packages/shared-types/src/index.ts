@@ -16,7 +16,7 @@ export interface Experiment {
   featureKey: string;
   featureEnabled: boolean;
   segmentRules?: {
-    includeAnonymousIds?: string[];
+    includeSubjectKeys?: string[];
     includeGroups?: string[];
     rolloutPercent?: number;
   };
@@ -30,7 +30,7 @@ export interface Experiment {
 export interface SdkEvent {
   event_id: string;
   app_id: string;
-  anonymous_id: string;
+  subject_key: string;
   experiment_key: string;
   variant_key: string;
   type: EventType;

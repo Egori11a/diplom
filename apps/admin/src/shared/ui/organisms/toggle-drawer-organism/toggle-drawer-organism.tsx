@@ -1,4 +1,4 @@
-﻿import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
+import { ButtonAtom, CheckboxAtom, DrawerAtom, InputAtom, TextareaAtom } from "../../atoms";
 import { FieldMolecule } from "../../molecules";
 import { adminUiText } from "../../../config";
 import type { ToggleFormVariant } from "../../../../pages/admin-page/types";
@@ -155,7 +155,7 @@ export const ToggleDrawerOrganism = ({
         </label>
       </div>
 
-      <FieldMolecule label="Additional anonymous ids (comma-separated)">
+      <FieldMolecule label="Additional subject keys (comma-separated)">
         <TextareaAtom
           value={form.includeIdsRaw}
           onChange={(event) => onFormChange({ includeIdsRaw: event.target.value })}
@@ -216,3 +216,4 @@ export const ToggleDrawerOrganism = ({
     </DrawerAtom>
   );
 };
+

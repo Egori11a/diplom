@@ -3,9 +3,9 @@ import { parseCsv } from "../../../shared/api";
 import type { ToggleView } from "../../../shared/api";
 import type { ToggleForm } from "../types";
 import {
-  buildIncludeAnonymousIds,
+  buildIncludeSubjectKeys,
   buildTogglePayload,
-  deriveAdditionalAnonymousIdsForEdit,
+  deriveAdditionalSubjectKeysForEdit,
   removeToggleFromCache,
   toToggleView,
   upsertToggleCache,
@@ -32,13 +32,13 @@ describe("use-admin-data helpers", () => {
   it("parseCsv include ids: trims, filters empty and deduplicates", () => {
     expect(parseCsv(" a, b ,, c ")).toEqual(["a", "b", "c"]);
 
-    const includeIds = buildIncludeAnonymousIds("user:maria,user:manual,user:maria");
+    const includeIds = buildIncludeSubjectKeys("user:maria,user:manual,user:maria");
 
     expect(includeIds).toEqual(["user:maria", "user:manual"]);
   });
 
-  it("derives Additional anonymous ids by excluding members from selected groups", () => {
-    const additionalIds = deriveAdditionalAnonymousIdsForEdit(
+  it("derives Additional subject keys by excluding members from selected groups", () => {
+    const additionalIds = deriveAdditionalSubjectKeysForEdit(
       [
         {
           id: "g1",
@@ -55,9 +55,9 @@ describe("use-admin-data helpers", () => {
   });
 
   it("builds payload from toggle form with trafficPercent and flexible variants", () => {
-    const { payload, includeAnonymousIds } = buildTogglePayload(sampleForm);
+    const { payload, includeSubjectKeys } = buildTogglePayload(sampleForm);
 
-    expect(includeAnonymousIds).toEqual(["user:manual", "user:manual-2"]);
+    expect(includeSubjectKeys).toEqual(["user:manual", "user:manual-2"]);
     expect(payload.trafficPercent).toBe(70);
     expect(payload.segmentRules.rolloutPercent).toBe(25);
     expect(payload.variants).toEqual([
@@ -130,3 +130,4 @@ describe("use-admin-data helpers", () => {
     expect(afterDelete).toEqual([]);
   });
 });
+
