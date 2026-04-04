@@ -151,7 +151,7 @@ export const ToggleDrawerOrganism = ({
               onFormChange({ featureEnabled: event.target.checked })
             }
           />
-          Feature enabled
+          Фича включена
         </label>
       </div>
 
@@ -167,7 +167,7 @@ export const ToggleDrawerOrganism = ({
         <div className="toggle-drawer-organism__variants">
           {form.variants.length > 0 ? (
             <ButtonAtom variant="secondary" type="button" onClick={clearVariants}>
-              Remove all variants
+              Удалить все варианты
             </ButtonAtom>
           ) : null}
           {form.variants.map((variant, index) => (
@@ -177,7 +177,7 @@ export const ToggleDrawerOrganism = ({
                 onChange={(event) =>
                   updateVariant(index, { key: event.target.value })
                 }
-                placeholder="Variant key"
+                placeholder="Ключ варианта"
               />
               <InputAtom
                 type="number"
@@ -189,26 +189,26 @@ export const ToggleDrawerOrganism = ({
                     weightPercent: normalizeNumberInput(event.target.value)
                   })
                 }
-                placeholder="Weight %"
+                placeholder="Вес %"
               />
               <ButtonAtom
                 variant="secondary"
                 type="button"
                 onClick={() => removeVariant(index)}
               >
-                Remove
+                Удалить
               </ButtonAtom>
             </div>
           ))}
           <ButtonAtom variant="secondary" type="button" onClick={addVariant}>
-            Add variant
+            Добавить вариант
           </ButtonAtom>
         </div>
       </FieldMolecule>
 
       <div className="toggle-drawer-organism__actions">
         <ButtonAtom type="button" onClick={onSave}>
-          {form.id ? "Save" : "Create"}
+          {form.id ? "Сохранить" : "Создать"}
         </ButtonAtom>
       </div>
 

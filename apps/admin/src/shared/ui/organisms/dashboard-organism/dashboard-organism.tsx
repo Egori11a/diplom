@@ -18,19 +18,19 @@ export const DashboardOrganism = ({
 
   return (
     <CardAtom>
-      <h2>Toggle Analytics</h2>
+      <h2>Аналитика тоггла</h2>
       <p className="dashboard-organism__muted">
-        Selected experiment: {selectedKey || "none"}
+        Выбранный эксперимент: {selectedKey || "не выбран"}
       </p>
 
       {selectedToggle && (
         <div className="dashboard-organism__tags">
           <TagAtom variant={selectedToggle.featureEnabled ? "success" : "warn"}>
-            {selectedToggle.featureEnabled ? "Feature ON" : "Feature OFF"}
+            {selectedToggle.featureEnabled ? "Фича включена" : "Фича выключена"}
           </TagAtom>
           <TagAtom variant="neutral">
-            Groups:{" "}
-            {(selectedToggle.segmentRules?.includeGroups ?? []).join(", ") || "none"}
+            Группы:{" "}
+            {(selectedToggle.segmentRules?.includeGroups ?? []).join(", ") || "нет"}
           </TagAtom>
           <TagAtom variant="neutral">
             Rollout: {selectedToggle.segmentRules?.rolloutPercent ?? 100}%
@@ -41,19 +41,19 @@ export const DashboardOrganism = ({
         </div>
       )}
 
-      {isLoading && <p className="dashboard-organism__muted">Loading analytics...</p>}
+      {isLoading && <p className="dashboard-organism__muted">Загрузка аналитики...</p>}
       {!isLoading && errorMessage && (
         <p className="dashboard-organism__error">{errorMessage}</p>
       )}
 
       {selectedKey && metrics && !isLoading && !errorMessage && (
         <div className="dashboard-organism__stats">
-          <MetricMolecule label="Impressions" value={String(metrics.impressions)} />
-          <MetricMolecule label="Clicks" value={String(metrics.clicks)} />
-          <MetricMolecule label="Conversions" value={String(metrics.conversions)} />
+          <MetricMolecule label="Показы" value={String(metrics.impressions)} />
+          <MetricMolecule label="Клики" value={String(metrics.clicks)} />
+          <MetricMolecule label="Конверсии" value={String(metrics.conversions)} />
           <MetricMolecule label="CTR" value={formatPercent(metrics.ctr)} />
           <MetricMolecule
-            label="CR (conv/impr)"
+            label="CR (конв./пок.)"
             value={formatPercent(metrics.conversion_rate)}
           />
           <MetricMolecule
@@ -72,14 +72,14 @@ export const DashboardOrganism = ({
         metrics &&
         variants.length > 0 && (
           <div className="dashboard-organism__variants">
-            <h3>By Variant</h3>
+            <h3>По вариантам</h3>
             <table className="dashboard-organism__table">
               <thead>
                 <tr>
-                  <th>Variant</th>
-                  <th>Impressions</th>
-                  <th>Clicks</th>
-                  <th>Conversions</th>
+                  <th>Вариант</th>
+                  <th>Показы</th>
+                  <th>Клики</th>
+                  <th>Конверсии</th>
                   <th>CTR</th>
                   <th>CR</th>
                 </tr>
@@ -102,13 +102,13 @@ export const DashboardOrganism = ({
 
       {!isLoading && !errorMessage && !selectedKey && (
         <p className="dashboard-organism__muted">
-          Select a toggle in the table to load analytics.
+          Выбери тоггл в таблице, чтобы загрузить аналитику.
         </p>
       )}
 
       {!isLoading && !errorMessage && selectedKey && !metrics && (
         <p className="dashboard-organism__muted">
-          No analytics yet. Send events to `/sdk/events/batch` for this experiment.
+          Пока нет аналитики. Отправь события в `/sdk/events/batch` для этого эксперимента.
         </p>
       )}
     </CardAtom>

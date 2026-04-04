@@ -27,13 +27,13 @@ export const adminUiText = {
     createButton: "Создать группу"
   },
   toggles: {
-    heading: "Feature toggles",
-    createButton: "Create toggle"
+    heading: "Фича-тогглы",
+    createButton: "Создать тоггл"
   },
   toggleDrawer: {
-    createHeading: "Create toggle",
-    editHeading: "Edit toggle",
-    closeButton: "Close"
+    createHeading: "Создание тоггла",
+    editHeading: "Редактирование тоггла",
+    closeButton: "Закрыть"
   }
 } as const;
 
