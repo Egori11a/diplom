@@ -22,6 +22,7 @@ export interface TrackEventInput {
 export interface ABHookResult {
   variant: string;
   enabled: boolean;
+  impressionRef: (element: HTMLElement | null) => void;
   track: (eventType: ABEventType, meta?: Record<string, unknown>) => void;
 }
 

@@ -61,6 +61,8 @@ export class EventsService {
     experimentKey: string,
     appId?: string
   ): Promise<ToggleAnalyticsSummary> {
+    const allowedVariantKeys = await this.getAllowedVariantKeys(experimentKey, appId);
+
     const where = ["experiment_key = {experimentKey:String}"];
     const queryParams: Record<string, string> = { experimentKey };
     if (appId) {
@@ -116,7 +118,13 @@ export class EventsService {
       this.toNumber(totals.conversions)
     );
 
-    const variants = variantRows.map((row) => ({
+    const filteredVariantRows = allowedVariantKeys
+      ? variantRows.filter((row) =>
+          allowedVariantKeys.has(row.variantKey ?? "unknown")
+        )
+      : variantRows;
+
+    const variants = filteredVariantRows.map((row) => ({
       variantKey: row.variantKey ?? "unknown",
       ...this.withDerivedMetrics(
         this.toNumber(row.impressions),
@@ -125,12 +133,62 @@ export class EventsService {
       )
     }));
 
+    const normalizedMetrics = allowedVariantKeys
+      ? this.withDerivedMetrics(
+          variants.reduce((sum, row) => sum + row.impressions, 0),
+          variants.reduce((sum, row) => sum + row.clicks, 0),
+          variants.reduce((sum, row) => sum + row.conversions, 0)
+        )
+      : metrics;
+
     return {
       experimentKey,
       appId,
-      metrics,
+      metrics: normalizedMetrics,
       variants
     };
+  }
+
+  private async getAllowedVariantKeys(
+    experimentKey: string,
+    appId?: string
+  ): Promise<Set<string> | null> {
+    const experimentResult = await this.db.pg.query(
+      `
+        SELECT id
+        FROM experiments
+        WHERE key = $1
+          AND ($2::text IS NULL OR app_id = $2)
+        ORDER BY updated_at DESC
+        LIMIT 1
+      `,
+      [experimentKey, appId ?? null]
+    );
+
+    const experimentId = experimentResult.rows[0]?.id as string | undefined;
+    if (!experimentId) {
+      return null;
+    }
+
+    const variantsResult = await this.db.pg.query(
+      `
+        SELECT key
+        FROM variants
+        WHERE experiment_id = $1
+        ORDER BY key
+      `,
+      [experimentId]
+    );
+
+    const keys = (variantsResult.rows as Array<{ key?: string }>)
+      .map((row) => row.key?.trim())
+      .filter((key): key is string => Boolean(key));
+
+    if (!keys.length) {
+      return new Set(["on"]);
+    }
+
+    return new Set(keys);
   }
 
   private toNumber(value: number | string | undefined): number {

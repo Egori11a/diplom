@@ -3,6 +3,9 @@ import { EventsService } from "./events.service";
 describe("EventsService", () => {
   const makeService = () => {
     const db = {
+      pg: {
+        query: jest.fn().mockResolvedValue({ rows: [] })
+      },
       clickhouse: {
         insert: jest.fn(),
         query: jest.fn()
@@ -115,5 +118,47 @@ describe("EventsService", () => {
       clicks: 3,
       conversions: 1
     });
+  });
+
+  it("filters analytics by current boolean toggle config (only 'on')", async () => {
+    const { service, db } = makeService();
+    db.pg.query
+      .mockResolvedValueOnce({ rows: [{ id: "exp-1" }] })
+      .mockResolvedValueOnce({ rows: [] }); // no variants => boolean mode
+
+    db.clickhouse.query
+      .mockResolvedValueOnce({
+        json: jest.fn().mockResolvedValue([
+          { impressions: "48", clicks: "0", conversions: "0" }
+        ])
+      })
+      .mockResolvedValueOnce({
+        json: jest.fn().mockResolvedValue([
+          { variantKey: "A", impressions: "1", clicks: "0", conversions: "0" },
+          { variantKey: "B", impressions: "16", clicks: "0", conversions: "0" },
+          { variantKey: "C", impressions: "8", clicks: "0", conversions: "0" },
+          { variantKey: "on", impressions: "23", clicks: "0", conversions: "0" }
+        ])
+      });
+
+    const result = await service.getToggleAnalytics(
+      "savings-income-simulator",
+      "finance-tracker"
+    );
+
+    expect(result.metrics.impressions).toBe(23);
+    expect(result.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          variantKey: "on",
+          impressions: 23,
+          clicks: 0,
+          conversions: 0
+        })
+      ])
+    );
+    expect(result.variants.find((item) => item.variantKey === "A")).toBeUndefined();
+    expect(result.variants.find((item) => item.variantKey === "B")).toBeUndefined();
+    expect(result.variants.find((item) => item.variantKey === "C")).toBeUndefined();
   });
 });
