@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren
 } from "react";
@@ -24,6 +25,8 @@ import type {
 const DEFAULT_CACHE_TTL_MS = 30_000;
 const CONTROL_VARIANT = "control";
 const EMPTY_GROUPS: string[] = [];
+const IMPRESSION_VIEWPORT_RATIO = 0.5;
+const IMPRESSION_VIEWPORT_DWELL_MS = 700;
 
 interface ABContextValue {
   experiments: ActiveExperiment[];
@@ -119,21 +122,107 @@ export const useAB = (experimentKey: string): ABHookResult => {
   }
 
   const { enabled, variant } = context.getAssignment(experimentKey);
+  const [impressionElement, setImpressionElement] = useState<HTMLElement | null>(null);
+  const impressionSentRef = useRef(false);
+  const dwellTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!enabled) {
+    impressionSentRef.current = false;
+  }, [enabled, experimentKey, variant]);
+
+  useEffect(() => {
+    if (dwellTimerRef.current === null) {
       return;
     }
-    context.track({
-      type: "impression",
-      experiment_key: experimentKey,
-      variant_key: variant
-    });
-  }, [context.track, enabled, experimentKey, variant]);
+
+    window.clearTimeout(dwellTimerRef.current);
+    dwellTimerRef.current = null;
+  }, [enabled, experimentKey, variant]);
+
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined" ||
+      !enabled ||
+      !impressionElement ||
+      impressionSentRef.current
+    ) {
+      return;
+    }
+
+    const clearDwellTimer = () => {
+      if (dwellTimerRef.current !== null) {
+        window.clearTimeout(dwellTimerRef.current);
+        dwellTimerRef.current = null;
+      }
+    };
+
+    const sendImpression = () => {
+      if (impressionSentRef.current || document.visibilityState !== "visible") {
+        return;
+      }
+
+      impressionSentRef.current = true;
+      context.track({
+        type: "impression",
+        experiment_key: experimentKey,
+        variant_key: variant
+      });
+    };
+
+    const startDwellTimer = () => {
+      if (dwellTimerRef.current !== null) {
+        return;
+      }
+
+      dwellTimerRef.current = window.setTimeout(() => {
+        dwellTimerRef.current = null;
+        sendImpression();
+      }, IMPRESSION_VIEWPORT_DWELL_MS);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        const isVisibleEnough =
+          Boolean(entry?.isIntersecting) &&
+          (entry?.intersectionRatio ?? 0) >= IMPRESSION_VIEWPORT_RATIO &&
+          document.visibilityState === "visible";
+
+        if (!isVisibleEnough) {
+          clearDwellTimer();
+          return;
+        }
+
+        startDwellTimer();
+      },
+      { threshold: [IMPRESSION_VIEWPORT_RATIO] }
+    );
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        clearDwellTimer();
+      }
+    };
+
+    observer.observe(impressionElement);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearDwellTimer();
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [context.track, enabled, experimentKey, impressionElement, variant]);
+
+  const impressionRef = useCallback((element: HTMLElement | null) => {
+    setImpressionElement(element);
+  }, []);
 
   return {
     variant: enabled ? variant : CONTROL_VARIANT,
     enabled,
+    impressionRef,
     track: (eventType, meta) => {
       if (!enabled) {
         return;
