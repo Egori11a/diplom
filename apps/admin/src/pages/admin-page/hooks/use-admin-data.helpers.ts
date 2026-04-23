@@ -36,13 +36,14 @@ const normalizeVariant = (
 ): ToggleFormVariant | null => {
   const key = variant.key.trim();
   const weightPercent = Number(variant.weightPercent);
+  const comment = variant.comment?.trim() ?? "";
   if (!key) {
     return null;
   }
   if (!Number.isFinite(weightPercent)) {
     return null;
   }
-  return { key, weightPercent };
+  return { key, weightPercent, comment };
 };
 
 export const buildIncludeSubjectKeys = (
@@ -76,7 +77,9 @@ export const buildTogglePayload = (
     .map((item) => ({
       key: item.key,
       weightPercent: item.weightPercent,
-      payload: { variant: item.key }
+      payload: item.comment
+        ? { variant: item.key, comment: item.comment }
+        : { variant: item.key }
     }));
 
   return {
@@ -162,7 +165,11 @@ export const toToggleView = (id: string, payload: TogglePayload): ToggleView => 
   trafficPercent: payload.trafficPercent,
   variants: payload.variants.map((variant) => ({
     key: variant.key,
-    weightPercent: variant.weightPercent
+    weightPercent: variant.weightPercent,
+    comment:
+      typeof variant.payload?.comment === "string"
+        ? variant.payload.comment
+        : undefined
   }))
 });
 

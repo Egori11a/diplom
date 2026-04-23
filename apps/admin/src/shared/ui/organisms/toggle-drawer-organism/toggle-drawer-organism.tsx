@@ -3,6 +3,10 @@ import { FieldMolecule } from "../../molecules";
 import { adminUiText } from "../../../config";
 import type { ToggleFormVariant } from "../../../../pages/admin-page/types";
 import type { ToggleDrawerOrganismProps } from "./types";
+import {
+  addVariantWithAutoWeights,
+  removeVariantWithAutoWeights
+} from "./variant-weights";
 import "./toggle-drawer-organism.css";
 
 const normalizeNumberInput = (value: string): number => {
@@ -37,21 +41,13 @@ export const ToggleDrawerOrganism = ({
       return;
     }
     onFormChange({
-      variants: form.variants.filter((_, variantIndex) => variantIndex !== index)
+      variants: removeVariantWithAutoWeights(form.variants, index)
     });
   };
 
   const addVariant = (): void => {
-    const nextIndex = form.variants.length + 1;
-    const defaultWeight = form.variants.length === 0 ? 100 : 0;
     onFormChange({
-      variants: [
-        ...form.variants,
-        {
-          key: `V${nextIndex}`,
-          weightPercent: defaultWeight
-        }
-      ]
+      variants: addVariantWithAutoWeights(form.variants)
     });
   };
 
@@ -165,6 +161,9 @@ export const ToggleDrawerOrganism = ({
 
       <FieldMolecule label="Variants (optional, flexible weights)">
         <div className="toggle-drawer-organism__variants">
+          <p className="toggle-drawer-organism__variants-hint">
+            При добавлении или удалении варианта веса перераспределяются автоматически.
+          </p>
           {form.variants.length > 0 ? (
             <ButtonAtom variant="secondary" type="button" onClick={clearVariants}>
               Удалить все варианты
@@ -190,6 +189,15 @@ export const ToggleDrawerOrganism = ({
                   })
                 }
                 placeholder="Вес %"
+              />
+              <InputAtom
+                value={variant.comment ?? ""}
+                onChange={(event) =>
+                  updateVariant(index, {
+                    comment: event.target.value
+                  })
+                }
+                placeholder="Комментарий"
               />
               <ButtonAtom
                 variant="secondary"

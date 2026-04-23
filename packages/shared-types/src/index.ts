@@ -7,6 +7,7 @@ export interface Variant {
   key: string;
   weightPercent: number;
   payload: Record<string, unknown>;
+  comment?: string;
 }
 
 export interface Experiment {

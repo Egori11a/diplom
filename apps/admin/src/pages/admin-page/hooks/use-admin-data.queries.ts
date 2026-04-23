@@ -7,6 +7,36 @@ import {
 import type { GroupsQuery, TogglesQuery } from "../types";
 import { adminDataQueryKeys } from "./use-admin-data.query-keys";
 
+interface RawToggleVariant {
+  key: string;
+  weightPercent: number;
+  comment?: string;
+  payload?: Record<string, unknown>;
+}
+
+interface RawTogglesQuery {
+  experiments: Array<Omit<ToggleView, "variants"> & { variants: RawToggleVariant[] }>;
+}
+
+const normalizeVariantComment = (variant: RawToggleVariant): string | undefined => {
+  if (typeof variant.comment === "string") {
+    return variant.comment;
+  }
+  const payloadComment = variant.payload?.comment;
+  return typeof payloadComment === "string" ? payloadComment : undefined;
+};
+
+const normalizeTogglesQuery = (query: RawTogglesQuery): TogglesQuery => ({
+  experiments: query.experiments.map((toggle) => ({
+    ...toggle,
+    variants: (toggle.variants ?? []).map((variant) => ({
+      key: variant.key,
+      weightPercent: variant.weightPercent,
+      comment: normalizeVariantComment(variant)
+    }))
+  }))
+});
+
 export const useGroupsQuery = (token: string) =>
   useQuery({
     queryKey: adminDataQueryKeys.groups(token),
@@ -29,7 +59,8 @@ export const useTogglesQuery = (token: string) =>
       if (!response.ok) {
         throw new Error("Failed to load feature toggles");
       }
-      return (await response.json()) as TogglesQuery;
+      const data = (await response.json()) as RawTogglesQuery;
+      return normalizeTogglesQuery(data);
     }
   });
 

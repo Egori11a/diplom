@@ -78,7 +78,6 @@ export const useAdminUiState = () => {
       toggle.segmentRules?.includeSubjectKeys ?? []
     );
 
-    setSelectedToggleId(toggle.id);
     setToggleForm({
       id: toggle.id,
       appId: toggle.appId,
@@ -94,7 +93,8 @@ export const useAdminUiState = () => {
         toggle.variants.length > 0
           ? toggle.variants.map((variant) => ({
               key: variant.key,
-              weightPercent: variant.weightPercent
+              weightPercent: variant.weightPercent,
+              comment: variant.comment ?? ""
             }))
           : cloneDefaultToggleForm().variants
     });

@@ -23,8 +23,8 @@ const sampleForm: ToggleForm = {
   groupNames: ["beta-team"],
   includeIdsRaw: "user:manual,user:manual-2",
   variants: [
-    { key: "A", weightPercent: 40 },
-    { key: "B", weightPercent: 60 }
+    { key: "A", weightPercent: 40, comment: "Контрольный вариант" },
+    { key: "B", weightPercent: 60, comment: "Новый вариант" }
   ]
 };
 
@@ -61,8 +61,16 @@ describe("use-admin-data helpers", () => {
     expect(payload.trafficPercent).toBe(70);
     expect(payload.segmentRules.rolloutPercent).toBe(25);
     expect(payload.variants).toEqual([
-      { key: "A", weightPercent: 40, payload: { variant: "A" } },
-      { key: "B", weightPercent: 60, payload: { variant: "B" } }
+      {
+        key: "A",
+        weightPercent: 40,
+        payload: { variant: "A", comment: "Контрольный вариант" }
+      },
+      {
+        key: "B",
+        weightPercent: 60,
+        payload: { variant: "B", comment: "Новый вариант" }
+      }
     ]);
   });
 
@@ -117,6 +125,7 @@ describe("use-admin-data helpers", () => {
     const afterCreate = upsertToggleCache(initial, createdToggle, "create");
     expect(afterCreate).toHaveLength(1);
     expect(afterCreate[0].id).toBe("t-1");
+    expect(afterCreate[0].variants[0].comment).toBe("Контрольный вариант");
 
     const updatedToggle = toToggleView("t-1", {
       ...payload,

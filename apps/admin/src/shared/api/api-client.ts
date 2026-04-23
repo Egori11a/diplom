@@ -50,6 +50,7 @@ export interface SegmentRules {
 export interface VariantView {
   key: string;
   weightPercent: number;
+  comment?: string;
 }
 
 export interface ToggleView {
