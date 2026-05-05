@@ -1,11 +1,16 @@
+import { useId } from "react";
 import type { FieldMoleculeProps } from "./types";
 import "./field-molecule.css";
 
 export const FieldMolecule = ({ label, children }: FieldMoleculeProps) => {
+  const labelId = useId();
+
   return (
-    <label className="field-molecule">
-      <span className="field-molecule__label">{label}</span>
+    <div className="field-molecule" role="group" aria-labelledby={labelId}>
+      <span id={labelId} className="field-molecule__label">
+        {label}
+      </span>
       {children}
-    </label>
+    </div>
   );
 };
