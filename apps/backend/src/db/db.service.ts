@@ -1,6 +1,9 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { createClient, type ClickHouseClient } from "@clickhouse/client";
+import { hash } from "bcryptjs";
 import { Pool } from "pg";
+import type { AdminRole } from "../auth/admin-role";
+import type { Queryable } from "./queryable";
 
 @Injectable()
 export class DbService implements OnModuleDestroy {
@@ -26,6 +29,21 @@ export class DbService implements OnModuleDestroy {
     await this.clickhouse.close();
   }
 
+  async withTransaction<T>(callback: (queryable: Queryable) => Promise<T>): Promise<T> {
+    const client = await this.pg.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await callback(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async ensureSchema(): Promise<void> {
     await this.pg.query("CREATE EXTENSION IF NOT EXISTS pgcrypto;");
 
@@ -33,7 +51,10 @@ export class DbService implements OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS admins (
         id UUID PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        password TEXT,
+        password_hash TEXT,
+        role TEXT NOT NULL DEFAULT 'owner',
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
@@ -77,9 +98,50 @@ export class DbService implements OnModuleDestroy {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE (group_id, member_key)
       );
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id UUID PRIMARY KEY,
+        actor_admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
+        actor_email TEXT NOT NULL,
+        actor_role TEXT NOT NULL,
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT,
+        entity_label TEXT,
+        before_state JSONB,
+        after_state JSONB,
+        meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
 
     await this.pg.query(`
+      ALTER TABLE admins
+      ALTER COLUMN password DROP NOT NULL;
+
+      ALTER TABLE admins
+      ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+      ALTER TABLE admins
+      ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'owner';
+
+      ALTER TABLE admins
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+      ALTER TABLE admins
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+      ALTER TABLE admins
+      ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+
+      UPDATE admins
+      SET role = 'owner'
+      WHERE role IS NULL OR role = '';
+
+      UPDATE admins
+      SET is_active = TRUE
+      WHERE is_active IS NULL;
+
       ALTER TABLE experiments
       ADD COLUMN IF NOT EXISTS feature_key TEXT NOT NULL DEFAULT '';
 
@@ -104,6 +166,20 @@ export class DbService implements OnModuleDestroy {
       UPDATE experiments
       SET segment_rules = segment_rules - 'includeAnonymousIds'
       WHERE segment_rules ? 'includeAnonymousIds';
+    `);
+
+    await this.pg.query(`
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
+      ON audit_logs (created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_email
+      ON audit_logs (actor_email);
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_entity_type
+      ON audit_logs (entity_type);
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_action
+      ON audit_logs (action);
     `);
 
     await this.clickhouse.command({
@@ -135,14 +211,23 @@ export class DbService implements OnModuleDestroy {
   private async seedAdmin(): Promise<void> {
     const email = process.env.ADMIN_EMAIL ?? "admin@local.test";
     const password = process.env.ADMIN_PASSWORD ?? "admin123";
+    const role = this.parseSeedRole(process.env.ADMIN_ROLE);
+    const passwordHash = await hash(password, 12);
 
     await this.pg.query(
       `
-      INSERT INTO admins (id, email, password)
-      VALUES (gen_random_uuid(), $1, $2)
+      INSERT INTO admins (id, email, password, password_hash, role, is_active, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, NULL, $2, $3, TRUE, NOW(), NOW())
       ON CONFLICT (email) DO NOTHING
       `,
-      [email, password]
+      [email, passwordHash, role]
     );
+  }
+
+  private parseSeedRole(value: string | undefined): AdminRole {
+    if (value === "owner" || value === "admin" || value === "editor" || value === "viewer") {
+      return value;
+    }
+    return "owner";
   }
 }

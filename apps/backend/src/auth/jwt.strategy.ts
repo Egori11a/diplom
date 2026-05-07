@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
+import type { AdminRole } from "./admin-role";
+import type { AuthenticatedAdmin } from "./authenticated-admin";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -12,11 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: { sub: string; email: string; role: string }): {
-    userId: string;
-    email: string;
-    role: string;
-  } {
+  validate(payload: { sub: string; email: string; role: AdminRole }): AuthenticatedAdmin {
     return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }

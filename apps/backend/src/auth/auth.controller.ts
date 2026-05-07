@@ -1,6 +1,16 @@
-import { Body, Controller, Post, UnauthorizedException } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UnauthorizedException,
+  UseGuards
+} from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { IsEmail, IsString, MinLength } from "class-validator";
+import { CurrentAdmin } from "./current-admin.decorator";
+import type { AuthenticatedAdmin } from "./authenticated-admin";
+import { JwtAuthGuard } from "./jwt-auth.guard";
 
 class LoginDto {
   @IsEmail()
@@ -22,5 +32,11 @@ export class AuthController {
       throw new UnauthorizedException("Invalid credentials");
     }
     return { accessToken };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  me(@CurrentAdmin() admin: AuthenticatedAdmin) {
+    return { admin };
   }
 }
