@@ -4,6 +4,7 @@ import type { GroupMember, GroupView, ToggleView } from "../../shared/api";
 export interface ToggleFormVariant {
   key: string;
   weightPercent: number;
+  comment?: string;
 }
 
 export interface ToggleForm {

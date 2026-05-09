@@ -9,7 +9,8 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "bench:api": "node scripts/benchmark-api.mjs"
   },
   "devDependencies": {
     "turbo": "^2.2.3",
