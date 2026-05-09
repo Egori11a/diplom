@@ -1,5 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { GroupMember, GroupView, ToggleView } from "../../shared/api";
+import type {
+  AdminRole,
+  AdminUserView,
+  GroupMember,
+  GroupView,
+  ToggleView
+} from "../../shared/api";
 
 export interface ToggleFormVariant {
   key: string;
@@ -39,7 +45,7 @@ export interface AdminPageProps {
   initialPassword?: string;
 }
 
-export type AdminScreen = "onboarding" | "groups" | "toggles";
+export type AdminScreen = "onboarding" | "groups" | "toggles" | "users";
 
 export interface GroupMemberInputMap {
   [groupId: string]: string;
@@ -51,6 +57,21 @@ export interface GroupsQuery {
 
 export interface TogglesQuery {
   experiments: ToggleView[];
+}
+
+export interface UsersQuery {
+  admins: AdminUserView[];
+}
+
+export interface CreateAdminForm {
+  email: string;
+  password: string;
+  role: AdminRole;
+}
+
+export interface ResetPasswordTarget {
+  id: string;
+  email: string;
 }
 
 export interface GroupWithLinks extends GroupView {
@@ -77,6 +98,7 @@ export interface TogglePayloadContext {
 
 export interface UseAdminDataParams {
   token: string;
+  currentAdminRole?: AdminRole;
   selectedToggleId?: string | null;
   newGroupName: string;
   newGroupDescription: string;

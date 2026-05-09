@@ -1,5 +1,23 @@
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
+export type AdminRole = "owner" | "admin" | "editor" | "viewer";
+
+export interface CurrentAdminView {
+  userId: string;
+  email: string;
+  role: AdminRole;
+}
+
+export interface AdminUserView {
+  id: string;
+  email: string;
+  role: AdminRole;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string | null;
+}
+
 export const login = async (email: string, password: string): Promise<string> => {
   const response = await fetch(`${apiUrl}/auth/login`, {
     method: "POST",
@@ -13,6 +31,16 @@ export const login = async (email: string, password: string): Promise<string> =>
 
   const data = (await response.json()) as { accessToken: string };
   return data.accessToken;
+};
+
+export const fetchCurrentAdmin = async (token: string): Promise<CurrentAdminView> => {
+  const response = await authFetch("/auth/me", token);
+  if (!response.ok) {
+    throw new Error("Не удалось получить профиль администратора");
+  }
+
+  const data = (await response.json()) as { admin: CurrentAdminView };
+  return data.admin;
 };
 
 export const authFetch = async (
@@ -94,4 +122,3 @@ export const parseCsv = (value: string): string[] =>
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-
