@@ -5,5 +5,7 @@ export * from "./group-drawer-organism";
 export * from "./groups-organism";
 export * from "./hero-organism";
 export * from "./onboarding-organism";
+export * from "./reset-admin-password-organism";
 export * from "./toggle-drawer-organism";
 export * from "./toggles-organism";
+export * from "./users-organism";

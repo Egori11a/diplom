@@ -1,4 +1,5 @@
-﻿import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
+import { useEffect } from "react";
+import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
 import {
   AuthFormOrganism,
   ConfirmDeleteGroupOrganism,
@@ -7,11 +8,19 @@ import {
   GroupsOrganism,
   HeroOrganism,
   OnboardingOrganism,
+  ResetAdminPasswordOrganism,
   ToggleDrawerOrganism,
-  TogglesOrganism
+  TogglesOrganism,
+  UsersOrganism
 } from "../../shared/ui/organisms";
 import { adminUiText } from "../../shared/config";
-import { useAdminAuth, useAdminData, useAdminDerived, useAdminUiState } from "./hooks";
+import {
+  useAdminAuth,
+  useAdminData,
+  useAdminDerived,
+  useAdminUiState,
+  useAdminUsers
+} from "./hooks";
 import type { AdminPageProps } from "./types";
 import "./admin-page.css";
 
@@ -21,6 +30,8 @@ export const AdminPage = ({
 }: AdminPageProps) => {
   const {
     token,
+    currentAdmin,
+    isLoadingProfile,
     email,
     password,
     loginError,
@@ -89,6 +100,25 @@ export const AdminPage = ({
   });
 
   const {
+    users,
+    isOwner,
+    isBusy: isUsersBusy,
+    actionError: usersActionError,
+    usersQuery,
+    createAdminForm,
+    setCreateAdminForm,
+    resetPasswordTarget,
+    setResetPasswordTarget,
+    resetPasswordValue,
+    setResetPasswordValue,
+    createAdminMutation,
+    updateAdminRoleMutation,
+    resetAdminPasswordMutation,
+    toggleAdminActiveMutation,
+    openResetPassword
+  } = useAdminUsers(token, currentAdmin);
+
+  const {
     filteredGroups,
     filteredToggles,
     linkedToggleKeysForEditingGroup
@@ -99,6 +129,15 @@ export const AdminPage = ({
     toggleSearchQuery,
     editingGroup
   });
+
+  useEffect(() => {
+    if (!isOwner && activeScreen === "users") {
+      setActiveScreen("onboarding");
+    }
+  }, [activeScreen, isOwner, setActiveScreen]);
+
+  const usersErrorMessage =
+    usersActionError || (usersQuery.error as Error | undefined)?.message || "";
 
   return (
     <main className="admin-page">
@@ -113,6 +152,10 @@ export const AdminPage = ({
           onPasswordChange={setPassword}
           onLogin={() => void handleLogin()}
         />
+      ) : isLoadingProfile ? (
+        <section className="admin-page__tabs">
+          <p>Загрузка профиля администратора...</p>
+        </section>
       ) : (
         <>
           <section className="admin-page__tabs">
@@ -137,6 +180,15 @@ export const AdminPage = ({
             >
               {adminUiText.tabs.toggles}
             </ButtonAtom>
+            {isOwner ? (
+              <ButtonAtom
+                type="button"
+                variant={activeScreen === "users" ? "primary" : "secondary"}
+                onClick={() => setActiveScreen("users")}
+              >
+                {adminUiText.tabs.users}
+              </ButtonAtom>
+            ) : null}
           </section>
 
           {activeScreen === "onboarding" && <OnboardingOrganism />}
@@ -190,6 +242,30 @@ export const AdminPage = ({
               />
             </>
           )}
+
+          {activeScreen === "users" && isOwner && currentAdmin ? (
+            <UsersOrganism
+              users={users}
+              currentAdminEmail={currentAdmin.email}
+              createAdminForm={createAdminForm}
+              isBusy={isUsersBusy}
+              errorMessage={usersErrorMessage}
+              onCreateAdminFormChange={(patch) =>
+                setCreateAdminForm((previous) => ({ ...previous, ...patch }))
+              }
+              onCreateAdmin={() => createAdminMutation.mutate()}
+              onRoleChange={(userId, role) =>
+                updateAdminRoleMutation.mutate({ userId, role })
+              }
+              onResetPassword={openResetPassword}
+              onToggleActive={(user) =>
+                toggleAdminActiveMutation.mutate({
+                  userId: user.id,
+                  isActive: user.isActive
+                })
+              }
+            />
+          ) : null}
         </>
       )}
 
@@ -255,6 +331,23 @@ export const AdminPage = ({
           />
         </>
       )}
+
+      {resetPasswordTarget ? (
+        <>
+          <OverlayAtom onClick={() => setResetPasswordTarget(null)} />
+          <ResetAdminPasswordOrganism
+            email={resetPasswordTarget.email}
+            password={resetPasswordValue}
+            isBusy={resetAdminPasswordMutation.isPending}
+            errorMessage={
+              (resetAdminPasswordMutation.error as Error | undefined)?.message || ""
+            }
+            onPasswordChange={setResetPasswordValue}
+            onClose={() => setResetPasswordTarget(null)}
+            onSubmit={() => resetAdminPasswordMutation.mutate()}
+          />
+        </>
+      ) : null}
     </main>
   );
 };
