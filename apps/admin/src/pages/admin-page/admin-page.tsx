@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { ButtonAtom, OverlayAtom } from "../../shared/ui/atoms";
 import {
+  AuditLogDetailOrganism,
+  AuditLogOrganism,
   AuthFormOrganism,
   ConfirmDeleteGroupOrganism,
   DashboardOrganism,
@@ -16,6 +18,7 @@ import {
 import { adminUiText } from "../../shared/config";
 import {
   useAdminAuth,
+  useAdminAudit,
   useAdminData,
   useAdminDerived,
   useAdminUiState,
@@ -98,6 +101,16 @@ export const AdminPage = ({
     toggleForm,
     setToggleDrawerOpen
   });
+
+  const {
+    filters: auditFilters,
+    setFilters: setAuditFilters,
+    selectedLog,
+    setSelectedLog,
+    logs: auditLogs,
+    isLoading: isAuditLoading,
+    errorMessage: auditErrorMessage
+  } = useAdminAudit(token);
 
   const {
     users,
@@ -189,6 +202,13 @@ export const AdminPage = ({
                 {adminUiText.tabs.users}
               </ButtonAtom>
             ) : null}
+            <ButtonAtom
+              type="button"
+              variant={activeScreen === "audit" ? "primary" : "secondary"}
+              onClick={() => setActiveScreen("audit")}
+            >
+              {adminUiText.tabs.audit}
+            </ButtonAtom>
           </section>
 
           {activeScreen === "onboarding" && <OnboardingOrganism />}
@@ -264,6 +284,19 @@ export const AdminPage = ({
                   isActive: user.isActive
                 })
               }
+            />
+          ) : null}
+
+          {activeScreen === "audit" ? (
+            <AuditLogOrganism
+              logs={auditLogs}
+              filters={auditFilters}
+              isLoading={isAuditLoading}
+              errorMessage={auditErrorMessage}
+              onFiltersChange={(patch) =>
+                setAuditFilters((previous) => ({ ...previous, ...patch }))
+              }
+              onSelectLog={setSelectedLog}
             />
           ) : null}
         </>
@@ -346,6 +379,13 @@ export const AdminPage = ({
             onClose={() => setResetPasswordTarget(null)}
             onSubmit={() => resetAdminPasswordMutation.mutate()}
           />
+        </>
+      ) : null}
+
+      {selectedLog ? (
+        <>
+          <OverlayAtom onClick={() => setSelectedLog(null)} />
+          <AuditLogDetailOrganism log={selectedLog} onClose={() => setSelectedLog(null)} />
         </>
       ) : null}
     </main>

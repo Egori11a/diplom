@@ -13,7 +13,8 @@ export const adminUiText = {
     onboarding: "Обучение",
     groups: "Группы",
     toggles: "Фича-тогглы",
-    users: "Пользователи"
+    users: "Пользователи",
+    audit: "Аудит"
   },
   auth: {
     heading: "Вход администратора",
@@ -39,6 +40,14 @@ export const adminUiText = {
     roleLabel: "Роль",
     resetPasswordHeading: "Сброс пароля"
   },
+  audit: {
+    heading: "Журнал аудита",
+    actorEmailLabel: "Email администратора",
+    actionLabel: "Действие",
+    entityTypeLabel: "Тип сущности",
+    limitLabel: "Лимит",
+    detailsHeading: "Детали события"
+  },
   toggleDrawer: {
     createHeading: "Создание тоггла",
     editHeading: "Редактирование тоггла",
@@ -57,7 +66,8 @@ export const adminUiAliases = {
     onboarding: [adminUiText.tabs.onboarding, "Onboarding"],
     groups: [adminUiText.tabs.groups, "Groups"],
     toggles: [adminUiText.tabs.toggles, adminUiText.toggles.heading, "Toggles"],
-    users: [adminUiText.tabs.users, "Users"]
+    users: [adminUiText.tabs.users, "Users"],
+    audit: [adminUiText.tabs.audit, "Audit"]
   },
   groups: {
     heading: [adminUiText.groups.heading, "Team groups", "Groups"],
@@ -76,6 +86,13 @@ export const adminUiAliases = {
     passwordLabel: [adminUiText.users.passwordLabel, "Password"],
     roleLabel: [adminUiText.users.roleLabel, "Role"]
   },
+  audit: {
+    heading: [adminUiText.audit.heading, adminUiText.tabs.audit],
+    actorEmailLabel: [adminUiText.audit.actorEmailLabel, "Admin email"],
+    actionLabel: [adminUiText.audit.actionLabel, "Action"],
+    entityTypeLabel: [adminUiText.audit.entityTypeLabel, "Entity type"],
+    limitLabel: [adminUiText.audit.limitLabel, "Limit"]
+  },
   toggleDrawer: {
     heading: [adminUiText.toggleDrawer.createHeading, "Создание тоггла"],
     closeButton: [adminUiText.toggleDrawer.closeButton, "Закрыть"]
@@ -93,7 +110,8 @@ export const adminUiPatterns = {
     onboarding: buildPattern(adminUiAliases.tabs.onboarding),
     groups: buildPattern(adminUiAliases.tabs.groups),
     toggles: buildPattern(adminUiAliases.tabs.toggles),
-    users: buildPattern(adminUiAliases.tabs.users)
+    users: buildPattern(adminUiAliases.tabs.users),
+    audit: buildPattern(adminUiAliases.tabs.audit)
   },
   groups: {
     heading: buildPattern(adminUiAliases.groups.heading),
@@ -111,6 +129,13 @@ export const adminUiPatterns = {
     emailLabel: buildPattern(adminUiAliases.users.emailLabel),
     passwordLabel: buildPattern(adminUiAliases.users.passwordLabel),
     roleLabel: buildPattern(adminUiAliases.users.roleLabel)
+  },
+  audit: {
+    heading: buildPattern(adminUiAliases.audit.heading),
+    actorEmailLabel: buildPattern(adminUiAliases.audit.actorEmailLabel),
+    actionLabel: buildPattern(adminUiAliases.audit.actionLabel),
+    entityTypeLabel: buildPattern(adminUiAliases.audit.entityTypeLabel),
+    limitLabel: buildPattern(adminUiAliases.audit.limitLabel)
   },
   toggleDrawer: {
     heading: buildPattern(adminUiAliases.toggleDrawer.heading),

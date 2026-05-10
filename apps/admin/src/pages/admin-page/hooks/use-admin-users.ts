@@ -26,6 +26,11 @@ export const useAdminUsers = (
   currentAdmin: CurrentAdminView | null
 ) => {
   const queryClient = useQueryClient();
+  const invalidateAuditLogs = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["audit-logs", token]
+    });
+  };
   const [createAdminForm, setCreateAdminForm] = useState<CreateAdminForm>(
     defaultCreateAdminForm
   );
@@ -65,6 +70,7 @@ export const useAdminUsers = (
       await queryClient.invalidateQueries({
         queryKey: adminDataQueryKeys.users(token)
       });
+      await invalidateAuditLogs();
     }
   });
 
@@ -87,6 +93,7 @@ export const useAdminUsers = (
       await queryClient.invalidateQueries({
         queryKey: adminDataQueryKeys.users(token)
       });
+      await invalidateAuditLogs();
     }
   });
 
@@ -106,9 +113,10 @@ export const useAdminUsers = (
       );
       await ensureMutationSuccess(response);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setResetPasswordTarget(null);
       setResetPasswordValue("");
+      await invalidateAuditLogs();
     }
   });
 
@@ -132,6 +140,7 @@ export const useAdminUsers = (
       await queryClient.invalidateQueries({
         queryKey: adminDataQueryKeys.users(token)
       });
+      await invalidateAuditLogs();
     }
   });
 

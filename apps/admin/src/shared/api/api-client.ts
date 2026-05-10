@@ -1,6 +1,22 @@
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export type AdminRole = "owner" | "admin" | "editor" | "viewer";
+export type AuditAction =
+  | "experiment.created"
+  | "experiment.updated"
+  | "experiment.deleted"
+  | "group.created"
+  | "group.updated"
+  | "group.deleted"
+  | "group.member_added"
+  | "group.member_removed"
+  | "admin.created"
+  | "admin.role_changed"
+  | "admin.password_reset"
+  | "admin.deactivated"
+  | "admin.activated";
+
+export type AuditEntityType = "experiment" | "group" | "admin";
 
 export interface CurrentAdminView {
   userId: string;
@@ -16,6 +32,25 @@ export interface AdminUserView {
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string | null;
+}
+
+export interface AuditLogView {
+  id: string;
+  actorAdminId?: string | null;
+  actorEmail: string;
+  actorRole: AdminRole | string;
+  action: AuditAction | string;
+  entityType: AuditEntityType | string;
+  entityId?: string | null;
+  entityLabel?: string | null;
+  beforeState?: Record<string, unknown> | null;
+  afterState?: Record<string, unknown> | null;
+  meta: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AuditLogsQuery {
+  logs: AuditLogView[];
 }
 
 export const login = async (email: string, password: string): Promise<string> => {

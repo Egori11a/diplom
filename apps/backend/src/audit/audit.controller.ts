@@ -7,7 +7,7 @@ import { ListAuditLogsDto } from "./dto/list-audit-logs.dto";
 
 @Controller("admin/audit-logs")
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("admin")
+@Roles("viewer")
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 

@@ -1,0 +1,60 @@
+.audit-log-detail-organism__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.audit-log-detail-organism__header h2 {
+  margin: 0;
+}
+
+.audit-log-detail-organism__meta {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 1.2rem;
+}
+
+.audit-log-detail-organism__meta-item {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.audit-log-detail-organism__meta-item span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.audit-log-detail-organism__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.audit-log-detail-organism__section {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(6, 17, 39, 0.45);
+  padding: 1rem;
+}
+
+.audit-log-detail-organism__section h3 {
+  margin: 0 0 0.8rem;
+}
+
+.audit-log-detail-organism__json {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .audit-log-detail-organism__grid {
+    grid-template-columns: 1fr;
+  }
+}

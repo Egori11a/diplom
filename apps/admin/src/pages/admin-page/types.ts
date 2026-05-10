@@ -1,5 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
+  AuditAction,
+  AuditEntityType,
+  AuditLogView,
   AdminRole,
   AdminUserView,
   GroupMember,
@@ -45,7 +48,7 @@ export interface AdminPageProps {
   initialPassword?: string;
 }
 
-export type AdminScreen = "onboarding" | "groups" | "toggles" | "users";
+export type AdminScreen = "onboarding" | "groups" | "toggles" | "users" | "audit";
 
 export interface GroupMemberInputMap {
   [groupId: string]: string;
@@ -62,6 +65,15 @@ export interface TogglesQuery {
 export interface UsersQuery {
   admins: AdminUserView[];
 }
+
+export interface AuditFilters {
+  actorEmail: string;
+  action: AuditAction | "";
+  entityType: AuditEntityType | "";
+  limit: number;
+}
+
+export interface AuditLogDetailTarget extends AuditLogView {}
 
 export interface CreateAdminForm {
   email: string;

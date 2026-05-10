@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authFetch, type GroupView, type ToggleView } from "../../../shared/api";
 import type { UseAdminDataParams } from "../types";
 import {
@@ -64,6 +64,13 @@ export const useAdminDataMutations = ({
   updateGroupsCache,
   updateTogglesCache
 }: AdminDataMutationContext) => {
+  const queryClient = useQueryClient();
+  const invalidateAuditLogs = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["audit-logs", token]
+    });
+  };
+
   const createGroupMutation = useMutation({
     mutationFn: async () => {
       const response = await authFetch("/admin/groups", token, {
@@ -76,7 +83,7 @@ export const useAdminDataMutations = ({
       await ensureMutationSuccess(response);
       return (await response.json()) as { id: string };
     },
-    onSuccess: ({ id }) => {
+    onSuccess: async ({ id }) => {
       updateGroupsCache((groups) => [
         {
           id,
@@ -88,6 +95,7 @@ export const useAdminDataMutations = ({
       ]);
       setNewGroupName("");
       setNewGroupDescription("");
+      await invalidateAuditLogs();
     }
   });
 
@@ -110,7 +118,7 @@ export const useAdminDataMutations = ({
         nextName: editingGroup.name.trim()
       };
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (!result || !editingGroup) {
         return;
       }
@@ -143,6 +151,7 @@ export const useAdminDataMutations = ({
       }
 
       setEditingGroup(null);
+      await invalidateAuditLogs();
     }
   });
 
@@ -154,7 +163,7 @@ export const useAdminDataMutations = ({
       await ensureMutationSuccess(response);
       return { groupId, groupName };
     },
-    onSuccess: ({ groupId, groupName }) => {
+    onSuccess: async ({ groupId, groupName }) => {
       updateGroupsCache((groups) => groups.filter((group) => group.id !== groupId));
       updateTogglesCache((toggles) =>
         toggles.map((toggle) => ({
@@ -168,6 +177,7 @@ export const useAdminDataMutations = ({
         }))
       );
       setPendingDeleteGroup(null);
+      await invalidateAuditLogs();
     }
   });
 
@@ -181,7 +191,7 @@ export const useAdminDataMutations = ({
       await ensureMutationSuccess(response);
       return { groupId, memberKey };
     },
-    onSuccess: ({ groupId, memberKey }) => {
+    onSuccess: async ({ groupId, memberKey }) => {
       if (!memberKey) {
         return;
       }
@@ -213,6 +223,7 @@ export const useAdminDataMutations = ({
             }
           : previous
       );
+      await invalidateAuditLogs();
     }
   });
 
@@ -228,7 +239,7 @@ export const useAdminDataMutations = ({
       await ensureMutationSuccess(response);
       return { groupId, memberKey };
     },
-    onSuccess: ({ groupId, memberKey }) => {
+    onSuccess: async ({ groupId, memberKey }) => {
       updateGroupsCache((groups) =>
         groups.map((group) =>
           group.id === groupId
@@ -251,6 +262,7 @@ export const useAdminDataMutations = ({
             }
           : previous
       );
+      await invalidateAuditLogs();
     }
   });
 
@@ -283,10 +295,11 @@ export const useAdminDataMutations = ({
       const data = (await response.json()) as { id: string };
       return { id: data.id, mode: "create", payload };
     },
-    onSuccess: ({ id, mode, payload }) => {
+    onSuccess: async ({ id, mode, payload }) => {
       const nextToggle = toToggleView(id, payload);
       updateTogglesCache((toggles) => upsertToggleCache(toggles, nextToggle, mode));
       setToggleDrawerOpen(false);
+      await invalidateAuditLogs();
     }
   });
 
@@ -298,8 +311,9 @@ export const useAdminDataMutations = ({
       await ensureMutationSuccess(response);
       return toggleId;
     },
-    onSuccess: (toggleId) => {
+    onSuccess: async (toggleId) => {
       updateTogglesCache((toggles) => removeToggleFromCache(toggles, toggleId));
+      await invalidateAuditLogs();
     }
   });
 

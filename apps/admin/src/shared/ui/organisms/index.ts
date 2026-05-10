@@ -1,3 +1,5 @@
+export * from "./audit-log-detail-organism";
+export * from "./audit-log-organism";
 export * from "./auth-form-organism";
 export * from "./confirm-delete-group-organism";
 export * from "./dashboard-organism";
