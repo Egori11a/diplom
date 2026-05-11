@@ -1,93 +1,164 @@
 # AB Platform
-https://www.npmjs.com/package/@mathculture/ab-sdk
 
-Официальная документация проекта AB Platform: open-source self-host решение для feature toggle и A/B-тестирования в React-приложениях.
+AB Platform — self-host платформа для feature toggles, controlled rollout и базового A/B-тестирования в React-приложениях.
 
-## 1. Назначение платформы
+Публичный SDK:
 
-AB Platform решает две задачи:
+- npm: `@mathculture/ab-sdk`
+- пакет: https://www.npmjs.com/package/@mathculture/ab-sdk
 
-1. Управление фича-тогглами и раскаткой функциональности по сегментам.
-2. Проведение A/B-тестов, сбор событий и просмотр базовой аналитики по тогглам.
+Платформа решает две практические задачи:
 
-Главный публичный артефакт - npm SDK для React (`@mathculture/ab-sdk`).
+1. Управление включением функциональности без обязательного нового релиза клиентского приложения.
+2. Запуск и сопровождение простых A/B-экспериментов с событиями `impression`, `click`, `conversion` и базовой аналитикой.
 
-Self-host часть платформы:
+## Состав репозитория
 
-- `@ab/backend` - API и обработка событий (NestJS)
-- `@ab/admin` - админ-панель (React)
-- PostgreSQL - конфигурации экспериментов/тогглов/групп
-- ClickHouse - события и аналитические выборки
+- `apps/backend` — backend API на NestJS
+- `apps/admin` — административный UI на React
+- `packages/sdk` — React SDK `@mathculture/ab-sdk`
+- `packages/shared-types` — общие типы
+- `docs` — эксплуатационная и интеграционная документация
 
-## 2. Статус
+## Архитектура
 
-- Текущий статус: `v0.1.3`
+Платформа состоит из четырех основных частей:
 
-## 3. Состав репозитория
+1. `SDK runtime`
+   SDK встраивается в React-приложение, запрашивает активные эксперименты, локально вычисляет `enabled` и `variant`, а также отправляет события.
 
-- `apps/backend` - backend API и обработка событий
-- `apps/admin` - админ-панель
-- `packages/sdk` - React SDK для встраивания в сторонние приложения
-- `packages/shared-types` - общие типы
+2. `Backend`
+   Backend хранит конфигурации, выдает их SDK, принимает батчи событий и обслуживает административный API.
 
-## 4. Ключевые сущности системы
+3. `Admin UI`
+   Админка позволяет управлять группами, тогглами, пользователями административного контура и просматривать аудит изменений.
 
-- `Group` (группа): логический сегмент, например команда разработки, бета-группа, регион, тип клиентов.
-- `Group member`: идентификатор участника сегмента (в MVP это `subject_key`/`member_key`).
-- `Feature Toggle / Experiment`: правило показа фичи и вариантности.
-- `Variant`: вариант эксперимента (`A`, `B`, ...), влияет на поведение/UI.
-- `Segment Rules`: условия включения (группы, `subject_key`, rollout%).
+4. `Хранилища`
+   - PostgreSQL — конфигурации, административные пользователи, audit log
+   - ClickHouse — продуктовые события и аналитические выборки
 
-## 5. Как работает система (E2E)
+## Основные сущности
 
-1. Администратор в админке создает группы и фича-тогглы.
-2. React-приложение подключает SDK (`ABProvider`, `useAB`).
-3. SDK запрашивает активные эксперименты через backend:
-   - `GET /sdk/experiments/active?appId=...`
-4. SDK определяет, включен ли эксперимент для текущего пользователя:
-   - по `subject_key`
-   - по переданным `userGroups`
-   - по `rolloutPercent`.
-5. Для пользователей, прошедших сегментацию, SDK дополнительно применяет `trafficPercent`.
-6. Компонент получает `enabled` и `variant`, показывает нужный UI.
-7. SDK буферизует события и отправляет батчами:
-   - `POST /sdk/events/batch`
-8. Backend сохраняет события в ClickHouse и строит метрики для admin dashboard.
+- `Group` — логический сегмент пользователей
+- `Group member` — участник группы, идентифицируемый по `memberKey`
+- `Feature toggle / experiment` — правило включения фичи и выбора варианта
+- `Variant` — вариант эксперимента с весом `weightPercent`
+- `Admin user` — пользователь административного контура с ролью
+- `Audit log` — журнал административных действий
 
-### 5.1. Приоритеты правил в SDK
+## Как работает runtime
 
-1. Сначала проверяется `featureEnabled`.
-2. Затем сегментация: `includeSubjectKeys`, `includeGroups`, `rolloutPercent`.
-3. После этого применяется `trafficPercent`.
-4. Если есть варианты — выбирается `variant` по весам.
-5. Если `variants` пуст, для включенной фичи SDK возвращает технический вариант `"on"`.
+### Порядок принятия решения в SDK
 
-Коротко про разницу процентов:
+Для каждого эксперимента SDK действует так:
 
-- `rolloutPercent` — кто попадает в сегмент.
-- `trafficPercent` — кто из сегмента реально получает экспериментный контур.
+1. Проверяет `featureEnabled`.
+2. Проверяет попадание в сегмент:
+   - `includeSubjectKeys`
+   - `includeGroups`
+   - `rolloutPercent`
+3. Для прошедшего сегмента применяет `trafficPercent`.
+4. Если эксперимент включен и варианты существуют, выбирает `variant` по весам.
+5. Если вариантов нет, для включенной фичи возвращает технический вариант `"on"`.
 
-## 6. Инструкция для команды, которая хочет начать пользоваться платформой
+### Разница между `rolloutPercent` и `trafficPercent`
 
-Ниже описан полный onboarding для абстрактной продуктовой команды.
+- `rolloutPercent` определяет, кто попадает в сегмент.
+- `trafficPercent` определяет, кому из этого сегмента реально включается экспериментальный контур.
 
-### 6.1. Подготовить инфраструктуру
+### Почему assignment не хранится в базе
 
-Минимальные требования:
+В базе хранятся не индивидуальные решения для пользователей, а правила эксперимента. Конечное решение для конкретного `subjectKey` вычисляется в SDK детерминированно. Это упрощает runtime-контур и не требует отдельной таблицы assignments.
 
-- Docker + Docker Compose
+## События и аналитика
+
+Поддерживаются события:
+
+- `impression`
+- `click`
+- `conversion`
+- `custom`
+
+Текущее поведение:
+
+- `impression` отправляется автоматически, когда целевой элемент через `impressionRef` реально попадает во viewport и остается видимым не менее короткого порога времени;
+- `click`, `conversion` и `custom` отправляются только явным вызовом `track(...)`.
+
+Текущие метрики на backend:
+
+- `CTR = clicks / impressions`
+- `CR = conversions / impressions`
+- `Wilson 95%` рассчитывается для вероятности клика по числу `impressions`
+
+## Административный контур
+
+### Аутентификация и роли
+
+Для входа в админку используется JWT-аутентификация.
+
+Поддерживаются роли:
+
+- `owner`
+- `admin`
+- `editor`
+- `viewer`
+
+Текущая модель:
+
+- bootstrap-администратор создается из env-переменных;
+- основной сценарий входа использует `password_hash`;
+- сохранена совместимость со старым plaintext bootstrap-сценарием как миграционный слой.
+
+### Пользователи админки
+
+В admin UI реализован экран `Пользователи`.
+
+Сейчас можно:
+
+- создать административного пользователя;
+- изменить роль;
+- сбросить пароль;
+- активировать или деактивировать пользователя.
+
+Экран доступен роли `owner`.
+
+### Audit log
+
+Платформа фиксирует административные действия в `audit_logs`.
+
+Примеры событий:
+
+- `experiment.created`
+- `experiment.updated`
+- `experiment.deleted`
+- `group.created`
+- `group.updated`
+- `group.deleted`
+- `group.member_added`
+- `group.member_removed`
+- `admin.created`
+- `admin.role_changed`
+- `admin.password_reset`
+- `admin.activated`
+- `admin.deactivated`
+
+В admin UI реализована вкладка `Аудит` с таблицей событий и деталями `beforeState / afterState`.
+
+## Локальный запуск
+
+### Требования
+
+- Docker Desktop / Docker Engine
 - Node.js 20+ (рекомендуется 22)
 - pnpm
 
-Клонирование и установка:
+### Установка зависимостей
 
 ```bash
-git clone <repo-url>
-cd your_project
 pnpm install
 ```
 
-Запуск self-host окружения:
+### Поднять self-host стек
 
 ```bash
 docker compose up -d --build
@@ -95,170 +166,45 @@ docker compose up -d --build
 
 После запуска по умолчанию:
 
-- Admin UI: `http://localhost:5173`
-- Backend API: `http://localhost:3000`
+- admin UI: `http://localhost:5173`
+- backend: `http://localhost:3000`
 
-Дефолтный админ:
+Bootstrap-админ по умолчанию:
 
-- `email`: `admin@local.test`
-- `password`: `admin123`
+- email: `admin@local.test`
+- password: `admin123`
 
-### 6.2. Подключить SDK в целевое React-приложение
+### Запуск локальной разработки
 
-Установка SDK:
+Корневые команды:
 
 ```bash
-npm i @mathculture/ab-sdk
-# или pnpm add @mathculture/ab-sdk
+pnpm dev
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm bench:api
 ```
 
-Подключение провайдера в root:
+### Остановить стек
 
-```tsx
-import { ABProvider } from "@mathculture/ab-sdk";
-
-export function Root() {
-  return (
-    <ABProvider
-      config={{
-        apiUrl: "https://ab.company.internal",
-        appId: "web-main",
-        subjectKey: "subject:9b7d...",
-        userGroups: ["frontend-team"],
-        cacheTtlMs: 30000,
-        flushIntervalMs: 5000,
-        batchSize: 20
-      }}
-    >
-      <App />
-    </ABProvider>
-  );
-}
+```bash
+docker compose down
 ```
 
-Требования к `subjectKey`:
+## API
 
-- Используйте только стабильный непрямой идентификатор (`subject:*`, UUID, hash, opaque key).
-- Не передавайте в `subjectKey` raw `userId`, email, телефон или другие чувствительные поля.
-- Рекомендуемая практика: backend/auth выдает отдельный публичный `subject_key`, который и передается в SDK.
-
-Использование в feature-компоненте:
-
-```tsx
-import { useAB } from "@mathculture/ab-sdk";
-
-export function CheckoutCTA() {
-  const { enabled, variant, track } = useAB("checkout-cta");
-
-  if (!enabled) {
-    return <button>Старый CTA</button>;
-  }
-
-  return (
-    <button
-      onClick={() => track("click", { source: "checkout" })}
-      data-variant={variant}
-    >
-      Новый CTA ({variant})
-    </button>
-  );
-}
-```
-
-### 6.3. Настроить платформу в админке
-
-Рекомендуемый порядок:
-
-1. Экран `Обучение`: ознакомиться с семантикой сущностей.
-2. Экран `Группы`: создать группы (например `frontend-team`, `beta-testers`).
-3. Через `Изменить` у группы:
-   - добавить состав (member ids)
-   - проверить, к каким тогглам группа подключена.
-4. Экран `Фича-тогглы`:
-   - создать тоггл/эксперимент
-   - назначить группы
-   - задать `rollout%` и `traffic%`
-   - при необходимости добавить `Additional subject keys` (только ручной точечный таргетинг)
-   - включить/выключить фичу.
-
-### 6.4. Проверить работоспособность
-
-Чек-лист интеграции:
-
-1. В приложении под `ABProvider` экспериментный компонент показывает ожидаемый вариант.
-2. В Network есть вызовы:
-   - `GET /sdk/experiments/active`
-   - `POST /sdk/events/batch`
-3. В админке меняешь правила -> клиент через TTL подхватывает новые настройки.
-4. События принимаются backend и сохраняются в ClickHouse.
-
-### 6.5. Рекомендации эксплуатации
-
-- Использовать отдельный `appId` для каждого приложения и среды (`web-prod`, `web-stage`).
-- Включать rollout поэтапно: `1% -> 10% -> 25% -> 50% -> 100%`.
-- Держать понятные ключи тогглов в kebab-case.
-- После завершения эксперимента архивировать/удалять неактуальные тогглы.
-- Для сегментации использовать безопасный `subject_key` (opaque), а не внутренние ID пользователей.
-
-## 7. Как стыкуется AB Platform с backend команды
-
-Частый вопрос: если у команды уже есть свой backend, как это совместить?
-
-### 7.1. Базовая схема (рекомендуемая для MVP)
-
-- Frontend команды напрямую ходит в AB backend по SDK endpoints.
-- Основной backend команды остается независимым.
-- Связь между системами происходит через клиентский контекст (`userGroups`, user traits).
-
-То есть AB backend - отдельный сервис управления экспериментами, а не замена продуктового backend.
-
-### 7.2. Какие данные должна отдавать система команды
-
-Чтобы сегментация была полезной, backend команды обычно отдает frontend данные о пользователе:
-
-- роль/команда
-- регион
-- флаги доступа
-- идентификаторы сегментов
-
-Frontend преобразует эти данные в `userGroups` и передает в `ABProvider`.
-
-### 7.3. Продвинутая схема (опционально)
-
-Если политика компании запрещает прямые клиентские вызовы во внутренний сервис:
-
-- backend команды делает BFF-прокси к AB backend
-- или периодически синхронизирует правила из AB backend
-- SDK конфигурируется на этот proxy endpoint.
-
-### 7.4. Важные интеграционные моменты
-
-- CORS на AB backend должен разрешать домены приложений.
-- Нужен HTTPS в production.
-- Для `dev/stage/prod` рекомендуется разделять инстансы AB backend и БД.
-- Admin endpoints (JWT) не должны быть доступны без контроля доступа.
-
-## 8. API (MVP)
-
-### 8.1. Public SDK endpoints
+### Public SDK endpoints
 
 - `GET /sdk/experiments/active?appId=...`
 - `POST /sdk/events/batch`
 
-### 8.2. Admin endpoints (JWT)
-
-Auth:
+### Auth
 
 - `POST /auth/login`
+- `GET /auth/me`
 
-Feature toggles/experiments:
-
-- `GET /admin/feature-toggles`
-- `POST /admin/feature-toggles`
-- `PATCH /admin/feature-toggles/:id`
-- `DELETE /admin/feature-toggles/:id`
-
-Groups:
+### Admin: groups
 
 - `GET /admin/groups`
 - `POST /admin/groups`
@@ -267,40 +213,53 @@ Groups:
 - `POST /admin/groups/:id/members`
 - `DELETE /admin/groups/:id/members/:memberKey`
 
-Analytics:
+### Admin: feature toggles
 
-- `GET /admin/analytics/feature-toggles/:experimentKey?appId=...` (JWT)
+- `GET /admin/feature-toggles`
+- `POST /admin/feature-toggles`
+- `PATCH /admin/feature-toggles/:id`
+- `DELETE /admin/feature-toggles/:id`
 
-Типы событий:
+### Admin: analytics
 
-- `impression` — отправляется автоматически, когда `enabled=true` и целевой элемент (через `impressionRef`) реально попал во viewport (>= 50%) минимум на ~700 мс.
-- `click` — отправляется только при явном `track("click")`.
-- `conversion` — отправляется только при явном `track("conversion")`.
-- `custom` — отправляется только при явном `track("custom")`.
+- `GET /admin/analytics/feature-toggles/:experimentKey?appId=...`
 
-## 9. Локальная разработка
+### Admin: users
 
-### 9.1. Без Docker
+- `GET /admin/users`
+- `POST /admin/users`
+- `PATCH /admin/users/:id`
+- `POST /admin/users/:id/reset-password`
+- `POST /admin/users/:id/activate`
+- `POST /admin/users/:id/deactivate`
 
-Нужны локальные PostgreSQL и ClickHouse, затем:
+### Admin: audit
 
-```bash
-pnpm dev
-```
+- `GET /admin/audit-logs`
 
-### 9.2. Проверки качества
+## Тестирование
 
-```bash
-pnpm typecheck
-pnpm build
-pnpm test
-```
+В проекте есть несколько уровней автоматических проверок:
 
+- unit-тесты SDK;
+- unit-тесты backend-сервисов;
+- backend e2e по административному и SDK API;
+- admin UI smoke и e2e-сценарии Playwright.
 
-## 10. Лицензия
+Практически это покрывает:
+
+- assignment-логику SDK;
+- batching и отправку событий;
+- CRUD по группам и feature toggles;
+- аналитику по тогглам;
+- роли, пользователей админки и audit log;
+- базовую навигацию административного UI.
+
+## Документация
+
+- [SDK Integration Playbook](./docs/sdk-integration-playbook.md)
+- [Benchmark Methodology](./docs/benchmark-methodology.md)
+
+## Лицензия
 
 MIT
-
-## 11. Дополнительные материалы
-
-- [SDK Integration Playbook](./docs/sdk-integration-playbook.md) — подробный гайд по встраиванию SDK, требованиям к frontend/backend

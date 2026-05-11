@@ -1,3 +1,5 @@
+export * from "./audit-log-detail-organism";
+export * from "./audit-log-organism";
 export * from "./auth-form-organism";
 export * from "./confirm-delete-group-organism";
 export * from "./dashboard-organism";
@@ -5,5 +7,7 @@ export * from "./group-drawer-organism";
 export * from "./groups-organism";
 export * from "./hero-organism";
 export * from "./onboarding-organism";
+export * from "./reset-admin-password-organism";
 export * from "./toggle-drawer-organism";
 export * from "./toggles-organism";
+export * from "./users-organism";

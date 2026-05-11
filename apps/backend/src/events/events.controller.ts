@@ -9,6 +9,8 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { RolesGuard } from "../auth/roles.guard";
+import { Roles } from "../auth/roles.decorator";
 import { BatchEventsDto } from "./dto/batch-events.dto";
 import { EventsService } from "./events.service";
 
@@ -23,7 +25,8 @@ export class EventsController {
     return { accepted: body.events.length };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("viewer")
   @Get("admin/analytics/feature-toggles/:experimentKey")
   analytics(
     @Param("experimentKey") experimentKey: string,

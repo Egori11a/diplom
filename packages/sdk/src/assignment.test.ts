@@ -123,4 +123,28 @@ describe("resolveAssignment", () => {
     expect(result.enabled).toBe(true);
     expect(["A", "B"]).toContain(result.variant);
   });
+
+  it("returns enabled 'on' for boolean toggle without variants", () => {
+    const result = resolveAssignment("user-1", [], {
+      ...baseExperiment,
+      variants: []
+    });
+
+    expect(result).toEqual({ enabled: true, variant: "on" });
+  });
+
+  it("does not confuse control and on semantics", () => {
+    const outOfTraffic = resolveAssignment("user-1", [], {
+      ...baseExperiment,
+      trafficPercent: 0,
+      variants: []
+    });
+    const booleanToggle = resolveAssignment("user-1", [], {
+      ...baseExperiment,
+      variants: []
+    });
+
+    expect(outOfTraffic).toEqual({ enabled: false, variant: "control" });
+    expect(booleanToggle).toEqual({ enabled: true, variant: "on" });
+  });
 });
