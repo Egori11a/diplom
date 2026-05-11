@@ -118,6 +118,42 @@ describe("EventsService", () => {
       clicks: 3,
       conversions: 1
     });
+    expect(result.variants[0].ctr).toBeCloseTo(0.6, 5);
+    expect(result.variants[0].conversion_rate).toBeCloseTo(0.2, 5);
+  });
+
+  it("filters analytics by current configured experiment variants", async () => {
+    const { service, db } = makeService();
+    db.pg.query
+      .mockResolvedValueOnce({ rows: [{ id: "exp-1" }] })
+      .mockResolvedValueOnce({
+        rows: [{ key: "A" }, { key: "B" }]
+      });
+
+    db.clickhouse.query
+      .mockResolvedValueOnce({
+        json: jest.fn().mockResolvedValue([
+          { impressions: "14", clicks: "7", conversions: "3" }
+        ])
+      })
+      .mockResolvedValueOnce({
+        json: jest.fn().mockResolvedValue([
+          { variantKey: "A", impressions: "5", clicks: "3", conversions: "1" },
+          { variantKey: "B", impressions: "7", clicks: "4", conversions: "2" },
+          { variantKey: "C", impressions: "2", clicks: "0", conversions: "0" }
+        ])
+      });
+
+    const result = await service.getToggleAnalytics("checkout-cta", "demo-app");
+
+    expect(result.metrics.impressions).toBe(12);
+    expect(result.metrics.clicks).toBe(7);
+    expect(result.metrics.conversions).toBe(3);
+    expect(result.variants).toEqual([
+      expect.objectContaining({ variantKey: "A", impressions: 5 }),
+      expect.objectContaining({ variantKey: "B", impressions: 7 })
+    ]);
+    expect(result.variants.find((item) => item.variantKey === "C")).toBeUndefined();
   });
 
   it("filters analytics by current boolean toggle config (only 'on')", async () => {

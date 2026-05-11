@@ -57,6 +57,44 @@ describe("ExperimentsService", () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it("accepts boolean toggle without variants", async () => {
+    const { service, pg } = makeService();
+    pg.query
+      .mockResolvedValueOnce({ rows: [{ id: "exp-2" }], rowCount: 1 })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: "exp-2",
+            app_id: "demo-app",
+            key: "boolean-toggle",
+            name: "Boolean Toggle",
+            feature_key: "boolean-toggle",
+            feature_enabled: true,
+            segment_rules: { rolloutPercent: 100 },
+            status: "active",
+            traffic_percent: 100,
+            start_at: null,
+            end_at: null
+          }
+        ],
+        rowCount: 1
+      })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    const result = await service.create(
+      {
+        ...validDto,
+        key: "boolean-toggle",
+        featureKey: "boolean-toggle",
+        name: "Boolean Toggle",
+        variants: []
+      },
+      actor
+    );
+
+    expect(result).toEqual({ id: "exp-2" });
+  });
+
   it("maps duplicate experiment key to ConflictException", async () => {
     const { service, pg } = makeService();
     pg.query.mockRejectedValue({ code: "23505" });
@@ -193,6 +231,38 @@ describe("ExperimentsService", () => {
 
     await expect(service.update("missing-id", validDto, actor)).rejects.toThrow(
       NotFoundException
+    );
+  });
+
+  it("maps duplicate experiment key on update to ConflictException", async () => {
+    const { service, pg } = makeService();
+    pg.query
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: "exp-1",
+            app_id: "demo-app",
+            key: "checkout-cta",
+            name: "Checkout CTA",
+            feature_key: "checkout-cta",
+            feature_enabled: true,
+            segment_rules: { rolloutPercent: 100 },
+            status: "active",
+            traffic_percent: 100,
+            start_at: null,
+            end_at: null
+          }
+        ],
+        rowCount: 1
+      })
+      .mockResolvedValueOnce({
+        rows: [],
+        rowCount: 0
+      })
+      .mockRejectedValueOnce({ code: "23505" });
+
+    await expect(service.update("exp-1", validDto, actor)).rejects.toThrow(
+      ConflictException
     );
   });
 });

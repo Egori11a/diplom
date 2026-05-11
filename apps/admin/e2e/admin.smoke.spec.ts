@@ -14,6 +14,8 @@ test.describe("Admin Smoke", () => {
     await expect(page.getByRole("button", { name: adminUiPatterns.tabs.onboarding })).toBeVisible();
     await expect(page.getByRole("button", { name: adminUiPatterns.tabs.groups })).toBeVisible();
     await expect(page.getByRole("button", { name: adminUiPatterns.tabs.toggles })).toBeVisible();
+    await expect(page.getByRole("button", { name: adminUiPatterns.tabs.users })).toBeVisible();
+    await expect(page.getByRole("button", { name: adminUiPatterns.tabs.audit })).toBeVisible();
 
     await page.getByRole("button", { name: adminUiPatterns.tabs.groups }).click();
     await expect(page.getByRole("heading", { name: adminUiPatterns.groups.heading })).toBeVisible();
@@ -31,5 +33,11 @@ test.describe("Admin Smoke", () => {
     await expect(page.getByRole("heading", { name: adminUiPatterns.toggleDrawer.heading })).toBeVisible();
     await page.getByRole("button", { name: adminUiPatterns.toggleDrawer.closeButton }).click();
     await expect(page.getByRole("heading", { name: adminUiPatterns.toggleDrawer.heading })).toHaveCount(0);
+
+    await page.getByRole("button", { name: adminUiPatterns.tabs.users }).click();
+    await expect(page.getByRole("heading", { name: adminUiPatterns.users.heading })).toBeVisible();
+
+    await page.getByRole("button", { name: adminUiPatterns.tabs.audit }).click();
+    await expect(page.getByRole("heading", { name: adminUiPatterns.audit.heading })).toBeVisible();
   });
 });

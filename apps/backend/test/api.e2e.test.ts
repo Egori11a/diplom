@@ -1,4 +1,5 @@
 import request from "supertest";
+import { Client } from "pg";
 import { isExperimentEnabled, resolveVariant } from "../../../packages/sdk/src/assignment";
 import type { ActiveExperiment } from "../../../packages/sdk/src/types";
 
@@ -18,7 +19,11 @@ describe("Backend E2E", () => {
   const simpleToggleKey = `e2e-simple-toggle-${suffix}`;
   const targetSubjectKey = `target-subject-${suffix}`;
   const targetGroup = `qa-canary-${suffix}`;
+  const viewerEmail = `viewer-${suffix}@local.test`;
+  const viewerPassword = `viewer-pass-${suffix}`;
   let groupId = "";
+  let viewerToken = "";
+  let viewerUserId = "";
   const experimentIds: string[] = [];
 
   const baseVariants = [
@@ -35,6 +40,45 @@ describe("Backend E2E", () => {
     expect(response.status).toBe(201);
     expect(response.body.accessToken).toEqual(expect.any(String));
     token = response.body.accessToken;
+  });
+
+  it("admin hardening: owner creates viewer user and viewer has read-only audit access", async () => {
+    const createUserResponse = await api
+      .post("/admin/users")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        email: viewerEmail,
+        password: viewerPassword,
+        role: "viewer"
+      });
+
+    expect(createUserResponse.status).toBe(201);
+    viewerUserId = createUserResponse.body.id as string;
+
+    const viewerLoginResponse = await api.post("/auth/login").send({
+      email: viewerEmail,
+      password: viewerPassword
+    });
+
+    expect(viewerLoginResponse.status).toBe(201);
+    viewerToken = viewerLoginResponse.body.accessToken as string;
+
+    const auditResponse = await api
+      .get("/admin/audit-logs?limit=10")
+      .set("Authorization", `Bearer ${viewerToken}`);
+    expect(auditResponse.status).toBe(200);
+    expect(Array.isArray(auditResponse.body.logs)).toBe(true);
+    expect(
+      auditResponse.body.logs.some(
+        (log: { action: string; entityLabel?: string }) =>
+          log.action === "admin.created" && log.entityLabel === viewerEmail
+      )
+    ).toBe(true);
+
+    const usersResponse = await api
+      .get("/admin/users")
+      .set("Authorization", `Bearer ${viewerToken}`);
+    expect(usersResponse.status).toBe(403);
   });
 
   it("groups: create, update, add/remove member, delete", async () => {
@@ -348,6 +392,62 @@ describe("Backend E2E", () => {
     expect(Array.isArray(response.body.variants)).toBe(true);
   });
 
+  it("admin hardening: audit tracks role changes and activation state", async () => {
+    const updateRoleResponse = await api
+      .patch(`/admin/users/${viewerUserId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ role: "editor" });
+    expect(updateRoleResponse.status).toBe(200);
+
+    const deactivateResponse = await api
+      .post(`/admin/users/${viewerUserId}/deactivate`)
+      .set("Authorization", `Bearer ${token}`)
+      .send();
+    expect(deactivateResponse.status).toBe(201);
+
+    const activateResponse = await api
+      .post(`/admin/users/${viewerUserId}/activate`)
+      .set("Authorization", `Bearer ${token}`)
+      .send();
+    expect(activateResponse.status).toBe(201);
+
+    const auditResponse = await api
+      .get(`/admin/audit-logs?entityType=admin&limit=20`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(auditResponse.status).toBe(200);
+
+    const logs = auditResponse.body.logs as Array<{
+      action: string;
+      entityLabel?: string;
+      afterState?: { role?: string; isActive?: boolean };
+    }>;
+
+    expect(
+      logs.some(
+        (log) =>
+          log.action === "admin.role_changed" &&
+          log.entityLabel === viewerEmail &&
+          log.afterState?.role === "editor"
+      )
+    ).toBe(true);
+    expect(
+      logs.some(
+        (log) =>
+          log.action === "admin.deactivated" &&
+          log.entityLabel === viewerEmail &&
+          log.afterState?.isActive === false
+      )
+    ).toBe(true);
+    expect(
+      logs.some(
+        (log) =>
+          log.action === "admin.activated" &&
+          log.entityLabel === viewerEmail &&
+          log.afterState?.isActive === true
+      )
+    ).toBe(true);
+  });
+
   afterAll(async () => {
     for (const id of experimentIds) {
       await api
@@ -359,6 +459,28 @@ describe("Backend E2E", () => {
       await api
         .delete(`/admin/groups/${groupId}`)
         .set("Authorization", `Bearer ${token}`);
+    }
+
+    if (viewerEmail) {
+      const client = new Client({
+        connectionString:
+          process.env.POSTGRES_URL ??
+          "postgres://postgres:postgres@localhost:5432/ab_platform"
+      });
+      await client.connect();
+      try {
+        await client.query(
+          `
+          DELETE FROM audit_logs
+          WHERE actor_email = $1
+             OR entity_label = $1
+          `,
+          [viewerEmail]
+        );
+        await client.query("DELETE FROM admins WHERE email = $1", [viewerEmail]);
+      } finally {
+        await client.end();
+      }
     }
   });
 });

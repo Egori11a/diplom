@@ -79,6 +79,36 @@ describe("AdminsService", () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it("prevents changing own role", async () => {
+    const { service, pg } = makeService();
+    pg.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: "owner-1",
+          email: "owner@local.test",
+          role: "owner",
+          is_active: true,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+          last_login_at: null
+        }
+      ],
+      rowCount: 1
+    });
+
+    await expect(
+      service.update("owner-1", { role: "admin" }, actor)
+    ).rejects.toThrow(new BadRequestException("You cannot change your own role"));
+  });
+
+  it("prevents deactivating own account", async () => {
+    const { service } = makeService();
+
+    await expect(service.deactivate("owner-1", actor)).rejects.toThrow(
+      new BadRequestException("You cannot deactivate your own account")
+    );
+  });
+
   it("creates admin and writes audit log", async () => {
     const { service, pg, auditService } = makeService();
     pg.query
