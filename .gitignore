@@ -5,11 +5,8 @@
 **/build
 .env
 .env.*
+!.env.example
 apps/demo-app
-ДиаграммыСистемДизайн.pptx
-ОписаниеВКР.docx
-ПримерноеОписаниеИСтруктура.pdf
-docs-defense-checklist.md
 apps/admin/playwright-report
 apps/admin/test-results
 docs/plan.md
